@@ -92,7 +92,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       if (docSnap.exists()) {
         setCentralBalance(docSnap.data().balance || 0);
       } else {
-        setDoc(doc(db, "central_balance", "main"), { balance: 0 });
+        setDoc(doc(db, "central_balance", "main"), { balance: 0 }).catch(() => {});
       }
     });
 

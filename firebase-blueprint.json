@@ -1,0 +1,84 @@
+{
+  "rulesVersion": "2",
+  "collections": [
+    {
+      "name": "users",
+      "description": "User profiles and roles.",
+      "securityRules": {
+        "read": "request.auth != null",
+        "create": "request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner' || request.resource.data.role == 'karyawan')",
+        "update": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'",
+        "delete": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'"
+      },
+      "fields": {
+        "role": { "type": "string", "description": "owner, admin, or karyawan" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    {
+      "name": "services",
+      "description": "Master list of services and prices.",
+      "securityRules": {
+        "read": "request.auth != null",
+        "create": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'",
+        "update": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'",
+        "delete": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'"
+      },
+      "fields": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    {
+      "name": "jobs",
+      "description": "Daily jobs inputted by workers/admins.",
+      "securityRules": {
+        "read": "request.auth != null",
+        "create": "request.auth != null",
+        "update": "request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin'] || resource.data.employeeId == request.auth.uid)",
+        "delete": "request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin'] || resource.data.employeeId == request.auth.uid)"
+      },
+      "fields": {
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "date": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    {
+      "name": "central_balance",
+      "description": "Central balance to pay employees.",
+      "securityRules": {
+        "read": "request.auth != null",
+        "create": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin']",
+        "update": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin']",
+        "delete": "false"
+      },
+      "fields": {
+        "balance": { "type": "number" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    {
+      "name": "salary_balances",
+      "description": "Employee's pending/deposited salary (titip gaji / sisa kurangan).",
+      "securityRules": {
+        "read": "request.auth != null",
+        "create": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin']",
+        "update": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin']",
+        "delete": "false"
+      },
+      "fields": {
+        "employeeId": { "type": "string" },
+        "balance": { "type": "number" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    }
+  ]
+}

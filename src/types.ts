@@ -12,19 +12,21 @@ export interface Job {
   serviceId: string;
   quantity: number;
   deliveryFee: number;
+  status?: "pending" | "lunas";
 }
 
 export interface UserProfile {
   id: string;
-  email: string;
   name: string;
   role: "owner" | "admin" | "karyawan";
+  pin: string;
+  email?: string;
 }
 
 export interface SalaryTransaction {
   id: string;
   employeeId: string;
-  type: "titip" | "pelunasan";
+  type: "titip" | "pelunasan" | "penarikan";
   amount: number;
   date: string;
   note?: string;

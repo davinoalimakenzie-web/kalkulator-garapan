@@ -5,7 +5,7 @@ import {
   collection, doc, onSnapshot, setDoc, deleteDoc, 
   query, orderBy, addDoc, updateDoc, serverTimestamp 
 } from "firebase/firestore";
-import { onAuthStateChanged, User, signOut as firebaseSignOut } from "firebase/auth";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
 interface AppContextType {
   services: Service[];
@@ -15,13 +15,15 @@ interface AppContextType {
   centralBalance: number;
   currentUser: UserProfile | null;
   authLoading: boolean;
+  setCurrentUser: (user: UserProfile | null) => void;
 
   addService: (service: Omit<Service, "id">) => Promise<void>;
   updateService: (id: string, service: Omit<Service, "id">) => Promise<void>;
   deleteService: (id: string) => Promise<void>;
   
-  addJob: (job: Omit<Job, "id">) => Promise<void>;
+  addJob: (job: Omit<Job, "id"> & { status?: "pending" | "lunas" }) => Promise<void>;
   deleteJob: (id: string) => Promise<void>;
+  updateJobStatus: (id: string, status: "pending" | "lunas") => Promise<void>;
 
   addUser: (user: Omit<UserProfile, "id">, uid: string) => Promise<void>;
   
@@ -38,6 +40,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
   const [services, setServices] = useState<Service[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -45,30 +48,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [transactions, setTransactions] = useState<SalaryTransaction[]>([]);
   const [centralBalance, setCentralBalance] = useState<number>(0);
 
+  // Background anonymous authentication to satisfy Firestore security rules
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Fetch user profile
-        const unsubProfile = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
-          if (docSnap.exists()) {
-            setCurrentUser({ id: docSnap.id, ...docSnap.data() } as UserProfile);
-          } else {
-            setCurrentUser(null);
-          }
-          setAuthLoading(false);
-        });
-        return () => unsubProfile();
+      if (!user) {
+        try {
+          await signInAnonymously(auth);
+        } catch (err) {
+          console.error("Anonymous authentication failed", err);
+        }
       } else {
-        setCurrentUser(null);
-        setAuthLoading(false);
+        setFirebaseReady(true);
       }
     });
 
     return () => unsubAuth();
   }, []);
 
+  // Listen to Firestore once Firebase Auth is ready
   useEffect(() => {
-    if (!currentUser) return;
+    if (!firebaseReady) return;
+
+    // Listen to users collection
+    const unsubUsers = onSnapshot(collection(db, "users"), async (snap) => {
+      let usersList = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name || "",
+          role: data.role || "karyawan",
+          pin: data.pin || "1234",
+          email: data.email
+        } as UserProfile;
+      });
+      
+      // Auto-seed a default owner account if database has zero users
+      if (usersList.length === 0) {
+        const defId = "owner_default";
+        const defOwner: Omit<UserProfile, "id"> = {
+          name: "Davino Alim",
+          role: "owner",
+          pin: "1234"
+        };
+        await setDoc(doc(db, "users", defId), {
+          name: defOwner.name,
+          role: defOwner.role,
+          pin: defOwner.pin,
+          createdAt: serverTimestamp()
+        });
+        usersList = [{ id: defId, ...defOwner }];
+      }
+
+      setUsers(usersList);
+
+      // Restore session from localStorage if present
+      const savedUid = localStorage.getItem("kalkulator_karyawan_uid");
+      if (savedUid) {
+        const profile = usersList.find(u => u.id === savedUid);
+        if (profile) {
+          setCurrentUser(profile);
+        } else {
+          localStorage.removeItem("kalkulator_karyawan_uid");
+          setCurrentUser(null);
+        }
+      }
+      setAuthLoading(false);
+    }, (error) => {
+      console.error("Error listening to users", error);
+      setAuthLoading(false);
+    });
 
     const unsubServices = onSnapshot(collection(db, "services"), (snap) => {
       setServices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service)));
@@ -76,11 +124,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const jobsQuery = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
     const unsubJobs = onSnapshot(jobsQuery, (snap) => {
-      setJobs(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)));
-    });
-
-    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
+      setJobs(snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          status: data.status || "pending"
+        } as Job;
+      }));
     });
 
     const txQuery = query(collection(db, "salary_transactions"), orderBy("createdAt", "desc"));
@@ -97,13 +148,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => {
+      unsubUsers();
       unsubServices();
       unsubJobs();
-      unsubUsers();
       unsubTx();
       unsubBalance();
     };
-  }, [currentUser]);
+  }, [firebaseReady]);
 
   const addService = async (service: Omit<Service, "id">) => {
     await addDoc(collection(db, "services"), { ...service, createdAt: serverTimestamp() });
@@ -117,12 +168,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     await deleteDoc(doc(db, "services", id));
   };
 
-  const addJob = async (job: Omit<Job, "id">) => {
-    await addDoc(collection(db, "jobs"), { ...job, createdAt: serverTimestamp() });
+  const addJob = async (job: Omit<Job, "id"> & { status?: "pending" | "lunas" }) => {
+    await addDoc(collection(db, "jobs"), { 
+      ...job, 
+      status: job.status || "pending",
+      createdAt: serverTimestamp() 
+    });
   };
 
   const deleteJob = async (id: string) => {
     await deleteDoc(doc(db, "jobs", id));
+  };
+
+  const updateJobStatus = async (id: string, status: "pending" | "lunas") => {
+    await updateDoc(doc(db, "jobs", id), { status });
   };
 
   const addUser = async (user: Omit<UserProfile, "id">, uid: string) => {
@@ -139,7 +198,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    localStorage.removeItem("kalkulator_karyawan_uid");
+    setCurrentUser(null);
   };
 
   return (
@@ -152,11 +212,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         centralBalance,
         currentUser,
         authLoading,
+        setCurrentUser,
         addService,
         updateService,
         deleteService,
         addJob,
         deleteJob,
+        updateJobStatus,
         addUser,
         addTransaction,
         updateCentralBalance,

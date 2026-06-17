@@ -37,12 +37,12 @@ function Dashboard() {
             
             <nav className="hidden md:flex space-x-1 sm:space-x-2">
               <NavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-4 h-4" />}>
-                Input Pekerjaan
+                Input
               </NavButton>
               <NavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-4 h-4" />}>
-                Rekap & Gaji
+                Rekap
               </NavButton>
-              {currentUser.role === 'owner' && (
+              {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
                 <NavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-4 h-4" />}>
                   Setting
                 </NavButton>
@@ -68,7 +68,7 @@ function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-20 md:mb-8">
-        {activeView === "setting" && currentUser.role === "owner" && <Setting />}
+        {activeView === "setting" && (currentUser.role === "owner" || currentUser.role === "admin") && <Setting />}
         {activeView === "input" && <InputPekerjaan />}
         {activeView === "rekap" && <RekapGaji />}
       </main>
@@ -77,7 +77,7 @@ function Dashboard() {
         <div className="flex justify-around items-center h-16 px-2">
           <MobileNavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-5 h-5" />} label="Input" />
           <MobileNavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-5 h-5" />} label="Rekap" />
-          {currentUser.role === 'owner' && (
+          {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
             <MobileNavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-5 h-5" />} label="Setting" />
           )}
         </div>

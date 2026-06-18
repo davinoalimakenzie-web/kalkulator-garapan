@@ -271,7 +271,8 @@ export function Setting() {
         )}
 
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View (hidden on mobile screens) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -283,7 +284,7 @@ export function Setting() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 flex-col sm:table-row">
+                    <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 px-6 text-slate-800 font-medium">{user.name}</td>
                       <td className="py-3 px-6">
                         <input
@@ -334,6 +335,89 @@ export function Setting() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards View (displayed on modern phone ratios) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {users.map((user) => {
+                const isOwner = user.role === "owner";
+                const isAdmin = user.role === "admin";
+                
+                // Helper to render letter initials
+                const initials = user.name
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <div key={user.id} className="p-4 space-y-3.5 hover:bg-slate-50/50 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">{user.name}</p>
+                        <span className={`inline-block text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mt-0.5 ${
+                          isOwner 
+                            ? "bg-purple-100 text-purple-700" 
+                            : isAdmin 
+                            ? "bg-amber-100 text-amber-700" 
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 items-center pt-1">
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">PIN Login</span>
+                        <input
+                          type="text"
+                          maxLength={4}
+                          value={user.pin || ""}
+                          onChange={async (e) => {
+                            const newPin = e.target.value.replace(/\D/g, "");
+                            if (newPin.length <= 4) {
+                              await updateDoc(doc(db, "users", user.id), { pin: newPin });
+                            }
+                          }}
+                          className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none text-xs"
+                          placeholder="PIN"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Level Akses</span>
+                        <div className="flex items-center gap-2">
+                          <select 
+                            value={user.role}
+                            onChange={(e) => handleRoleChange(user.id, e.target.value as "owner" | "admin" | "karyawan")}
+                            disabled={user.role === "owner" && currentUser?.role !== "owner"}
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                          >
+                            <option value="karyawan">Karyawan</option>
+                            <option value="admin">Admin</option>
+                            {currentUser?.role === "owner" && <option value="owner">Owner</option>}
+                          </select>
+
+                          {user.id !== currentUser?.id && (
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              className="p-2 text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded"
+                              title="Hapus Karyawan"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
         </div>
       </section>

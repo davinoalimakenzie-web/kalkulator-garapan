@@ -321,56 +321,58 @@ export function RekapGaji() {
 
   return (
     <div className="space-y-4">
-      {(currentUser?.role === 'owner' || currentUser?.role === 'admin') && (
-        <div className="bg-white border text-slate-800 border-slate-200/80 rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-          {/* Col 1: Saldo Awal */}
-          <div className="flex items-center justify-between gap-4 pr-0 md:pr-4 py-1">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-50 p-2.5 rounded-xl text-indigo-600 shrink-0">
-                <Landmark className="w-6 h-6" />
+      {/* Sticky Top Header Section (Under the App Header) */}
+      <div className="sticky top-[64px] z-20 bg-slate-50/95 backdrop-blur-md pt-2 pb-2.5 space-y-3 -mx-2.5 px-2.5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-slate-200/50">
+        {(currentUser?.role === 'owner' || currentUser?.role === 'admin') && (
+          <div className="bg-white border text-slate-800 border-slate-200/80 rounded-xl p-3 sm:p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            {/* Col 1: Saldo Awal */}
+            <div className="flex items-center justify-between gap-2 sm:gap-4 pr-0 md:pr-4 py-1.5 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="bg-indigo-50 p-2 sm:p-2.5 rounded-xl text-indigo-600 shrink-0">
+                  <Landmark className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Saldo Awal</p>
+                  <p className="text-base sm:text-lg md:text-2xl font-black font-mono text-indigo-700 tracking-tight mt-1 truncate">{formatIDR(saldoAwal)}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Saldo Awal</p>
-                <p className="text-2xl font-black font-mono text-indigo-700">{formatIDR(saldoAwal)}</p>
-              </div>
+              <button 
+                onClick={() => setDepositModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer shadow-sm hover:shadow active:scale-[0.98] w-[115px] h-9 ml-auto"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                <span>Top Up Saldo</span>
+              </button>
             </div>
-            <button 
-              onClick={() => setDepositModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm hover:shadow hover:scale-[1.02] active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              Top Up Saldo
-            </button>
-          </div>
 
-          {/* Col 2: Sisa Saldo */}
-          <div className="flex items-center justify-between gap-4 pt-4 md:pt-0 pl-0 md:pl-4 py-1">
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-50 p-2.5 rounded-xl text-emerald-600 shrink-0">
-                <Banknote className="w-6 h-6" />
+            {/* Col 2: Sisa Saldo */}
+            <div className="flex items-center justify-between gap-2 sm:gap-4 pt-3 md:pt-0 pl-0 md:pl-4 py-1.5 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="bg-emerald-50 p-2 sm:p-2.5 rounded-xl text-emerald-600 shrink-0">
+                  <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Sisa Saldo</p>
+                  <p className="text-base sm:text-lg md:text-2xl font-black font-mono text-emerald-600 tracking-tight mt-1 truncate">{formatIDR(sisaSaldo)}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sisa Saldo</p>
-                <p className="text-2xl font-black font-mono text-emerald-600">{formatIDR(sisaSaldo)}</p>
-              </div>
+              <button 
+                onClick={() => {
+                  if (sisaSaldo <= 0) {
+                    alert("Sisa saldo sudah kosong!");
+                    return;
+                  }
+                  setWithdrawAmount(sisaSaldo.toString());
+                  setIsWithdrawModalOpen(true);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer shadow-sm hover:shadow active:scale-[0.98] w-[115px] h-9 ml-auto"
+              >
+                <ArrowDownToLine className="w-3.5 h-3.5 shrink-0" />
+                <span>Tarik Saldo</span>
+              </button>
             </div>
-            <button 
-              onClick={() => {
-                if (sisaSaldo <= 0) {
-                  alert("Sisa saldo sudah kosong!");
-                  return;
-                }
-                setWithdrawAmount(sisaSaldo.toString());
-                setIsWithdrawModalOpen(true);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm hover:shadow hover:scale-[1.02] active:scale-95"
-            >
-              <ArrowDownToLine className="w-4 h-4" />
-              Tarik Saldo
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
       {isWithdrawModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
@@ -518,6 +520,14 @@ export function RekapGaji() {
                     </div>
                     <ChevronRight className="w-5 h-5 text-indigo-200" />
                   </button>
+
+                  {/* Batal Button */}
+                  <button
+                    onClick={() => setIsPayActionModalOpen(false)}
+                    className="w-full h-12 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-all flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md active:scale-[0.98] mt-1"
+                  >
+                    Batal
+                  </button>
                 </div>
               ) : (
                 /* Input Amount Mode (Cicil) */
@@ -561,16 +571,17 @@ export function RekapGaji() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">Pelunasan Komisi Karyawan</h2>
-          <p className="text-xs text-slate-500">Kelola dan selesaikan kewajiban pembayaran komisi karyawan</p>
-        </div>
-        <div className="bg-slate-100 p-1 rounded-lg flex items-center gap-1 self-start sm:self-auto shrink-0">
-          <FilterButton current={filter} filter="today" onClick={setFilter} label="Hari Ini" />
-          <FilterButton current={filter} filter="week" onClick={setFilter} label="Minggu Ini" />
-          <FilterButton current={filter} filter="month" onClick={setFilter} label="Bulan Ini" />
-          <FilterButton current={filter} filter="all" onClick={setFilter} label="Semua" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-transparent pb-0 pt-1">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 leading-none">Pelunasan Komisi Karyawan</h2>
+            <p className="text-[10px] sm:text-xs text-slate-500 leading-none mt-1">Kelola dan selesaikan kewajiban pembayaran komisi karyawan</p>
+          </div>
+          <div className="bg-slate-100 p-0.5 rounded-lg flex items-center gap-0.5 self-start sm:self-auto shrink-0 select-none">
+            <FilterButton current={filter} filter="today" onClick={setFilter} label="Hari Ini" />
+            <FilterButton current={filter} filter="week" onClick={setFilter} label="Minggu Ini" />
+            <FilterButton current={filter} filter="month" onClick={setFilter} label="Bulan Ini" />
+            <FilterButton current={filter} filter="all" onClick={setFilter} label="Semua" />
+          </div>
         </div>
       </div>
 
@@ -636,52 +647,11 @@ export function RekapGaji() {
             <p className="text-[11px] text-slate-400">Daftar log pencatatan garapan dan pelunasan komisi</p>
           </div>
 
-          {/* Filters Panel */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            {/* Search filter */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari aktifitas..."
-                value={logSearch}
-                onChange={(e) => setLogSearch(e.target.value)}
-                className="pl-8 pr-3 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent w-full md:w-40"
-              />
-            </div>
-
-            {/* Dropdown Employee Filter */}
-            {currentUser?.role !== "karyawan" && (
-              <select
-                value={logEmployeeFilter}
-                onChange={(e) => setLogEmployeeFilter(e.target.value)}
-                className="py-1 px-2.5 bg-white border border-slate-200 rounded-md text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent cursor-pointer"
-              >
-                <option value="all">Semua Karyawan</option>
-                {Array.from(new Map(allActivities.map(act => [act.employeeId, act.employeeName])).entries()).map(([id, name]) => (
-                  <option key={id} value={id}>{name}</option>
-                ))}
-              </select>
-            )}
-
-            {/* Reset Filter Button */}
-            {(logEmployeeFilter !== "all" || logSearch.trim() !== "") && (
-              <button
-                onClick={() => {
-                  setLogEmployeeFilter("all");
-                  setLogSearch("");
-                }}
-                className="py-1 px-2.5 text-[11px] bg-indigo-50 text-indigo-600 font-semibold rounded-md hover:bg-indigo-100 transition-colors cursor-pointer text-center"
-              >
-                Reset
-              </button>
-            )}
-          </div>
         </div>
 
-        {/* Log List View - Single Row Terperinci */}
-        <div className="p-0 overflow-x-auto">
-          <div className="max-h-[350px] overflow-y-auto">
+        {/* Log List View - Double-Responsive for Mobile Cards and Widescreen Tables */}
+        <div className="p-0">
+          <div className="max-h-[380px] overflow-y-auto">
             {filteredActivities.length === 0 ? (
               <div className="text-center py-8 text-slate-400">
                 <Clock className="w-10 h-10 text-slate-200 mx-auto mb-2" />
@@ -689,25 +659,94 @@ export function RekapGaji() {
                 <p className="text-[10px] mt-0.5">Coba sesuaikan filter atau kata kunci.</p>
               </div>
             ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="sticky top-0 bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold z-10 shadow-sm">
-                  <tr>
-                    <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Tanggal</th>
-                    <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Aktivitas</th>
-                    <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Pelaku</th>
-                    <th className="py-2.5 px-4 bg-slate-50">Keterangan / Rincian</th>
-                    <th className="py-2.5 px-4 text-right whitespace-nowrap bg-slate-50">Jumlah</th>
-                    <th className="py-2.5 px-4 text-center whitespace-nowrap bg-slate-50">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-600">
+              <>
+                {/* Desktop View Table (hidden on mobile screen) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="sticky top-0 bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold z-10 shadow-sm">
+                      <tr>
+                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Tanggal</th>
+                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Aktivitas</th>
+                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Pelaku</th>
+                        <th className="py-2.5 px-4 bg-slate-50">Keterangan / Rincian</th>
+                        <th className="py-2.5 px-4 text-right whitespace-nowrap bg-slate-50">Jumlah</th>
+                        <th className="py-2.5 px-4 text-center whitespace-nowrap bg-slate-50">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-600">
+                      {filteredActivities.map((act) => {
+                        const isRepayment = act.type === "pelunasan";
+                        const isWithdrawal = act.type === "penarikan";
+
+                        let iconColorClass = "bg-indigo-50 text-indigo-600";
+                        let rowBgColorClass = "hover:bg-slate-50/50";
+                        if (isRepayment) {
+                          iconColorClass = "bg-emerald-50 text-emerald-600";
+                        } else if (isWithdrawal) {
+                          iconColorClass = "bg-amber-50 text-amber-600";
+                        }
+
+                        return (
+                          <tr key={act.id} className={`${rowBgColorClass} transition-colors`}>
+                            <td className="py-2.5 px-4 font-mono text-slate-400 whitespace-nowrap">
+                              {act.date}
+                            </td>
+                            <td className="py-2.5 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`p-1 rounded-md shrink-0 ${iconColorClass}`}>
+                                  {isRepayment ? (
+                                    <ArrowDownLeft className="w-3.5 h-3.5" />
+                                  ) : isWithdrawal ? (
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Activity className="w-3.5 h-3.5" />
+                                  )}
+                                </span>
+                                <span className="font-semibold text-slate-700">{act.title}</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-4 font-medium text-slate-800 whitespace-nowrap">
+                              {act.employeeName}
+                            </td>
+                            <td className="py-2.5 px-4 min-w-[220px]">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="text-slate-600 font-medium">{act.description}</span>
+                                {act.details && (
+                                  <>
+                                    <span className="text-slate-300 hidden sm:inline">•</span>
+                                    <span className="text-[10px] text-slate-400 font-mono italic">{act.details}</span>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className={`py-2.5 px-4 text-right font-bold font-mono whitespace-nowrap ${isRepayment || isWithdrawal ? "text-rose-600" : "text-indigo-600"}`}>
+                              {act.amountType === "minus" ? "-" : "+"}{formatIDR(act.amount)}
+                            </td>
+                            <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                              {act.status && (
+                                <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${
+                                  act.status === "lunas" 
+                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                                    : "bg-amber-50 text-amber-600 border-amber-100"
+                                }`}>
+                                  {act.status}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View List Cards (stacked cards, perfectly sized for modern phone screens) */}
+                <div className="md:hidden divide-y divide-slate-100">
                   {filteredActivities.map((act) => {
                     const isRepayment = act.type === "pelunasan";
                     const isWithdrawal = act.type === "penarikan";
 
-                    // Determine background & text color based on activity type
                     let iconColorClass = "bg-indigo-50 text-indigo-600";
-                    let rowBgColorClass = "hover:bg-slate-50/50";
                     if (isRepayment) {
                       iconColorClass = "bg-emerald-50 text-emerald-600";
                     } else if (isWithdrawal) {
@@ -715,68 +754,56 @@ export function RekapGaji() {
                     }
 
                     return (
-                      <tr key={act.id} className={`${rowBgColorClass} transition-colors`}>
-                        {/* Tanggal */}
-                        <td className="py-2.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                          {act.date}
-                        </td>
+                      <div key={act.id} className="p-3.5 space-y-2 hover:bg-slate-50 transition-all">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-400 font-mono">{act.date}</span>
+                          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider text-[10px]">
+                            Oleh: <strong className="text-slate-700">{act.employeeName}</strong>
+                          </span>
+                        </div>
 
-                        {/* Aktivitas */}
-                        <td className="py-2.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`p-1 rounded-md shrink-0 ${iconColorClass}`}>
-                              {isRepayment ? (
-                                <ArrowDownLeft className="w-3.5 h-3.5" />
-                              ) : isWithdrawal ? (
-                                <ArrowUpRight className="w-3.5 h-3.5" />
-                              ) : (
-                                <Activity className="w-3.5 h-3.5" />
-                              )}
-                            </span>
-                            <span className="font-semibold text-slate-700">{act.title}</span>
-                          </div>
-                        </td>
-
-                        {/* Nama pelaku */}
-                        <td className="py-2.5 px-4 font-medium text-slate-800 whitespace-nowrap">
-                          {act.employeeName}
-                        </td>
-
-                        {/* Keterangan */}
-                        <td className="py-2.5 px-4 min-w-[220px]">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                            <span className="text-slate-600 font-medium">{act.description}</span>
+                        <div className="flex items-start gap-2.5">
+                          <span className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${iconColorClass}`}>
+                            {isRepayment ? (
+                              <ArrowDownLeft className="w-4 h-4" />
+                            ) : isWithdrawal ? (
+                              <ArrowUpRight className="w-4 h-4" />
+                            ) : (
+                              <Activity className="w-4 h-4" />
+                            )}
+                          </span>
+                          
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-slate-800 text-xs sm:text-sm block truncate">{act.title}</span>
+                              <span className={`font-mono text-xs sm:text-sm font-bold shrink-0 ${isRepayment || isWithdrawal ? "text-rose-600" : "text-indigo-600"}`}>
+                                {act.amountType === "minus" ? "-" : "+"}{formatIDR(act.amount)}
+                              </span>
+                            </div>
+                            
+                            <p className="text-xs text-slate-500 leading-tight">{act.description}</p>
                             {act.details && (
-                              <>
-                                <span className="text-slate-300 hidden sm:inline">•</span>
-                                <span className="text-[10px] text-slate-400 font-mono italic">{act.details}</span>
-                              </>
+                              <p className="text-[10px] text-slate-400 font-mono italic truncate">{act.details}</p>
                             )}
                           </div>
-                        </td>
+                        </div>
 
-                        {/* Jumlah */}
-                        <td className={`py-2.5 px-4 text-right font-bold font-mono whitespace-nowrap ${isRepayment || isWithdrawal ? "text-rose-600" : "text-indigo-600"}`}>
-                          {act.amountType === "minus" ? "-" : "+"}{formatIDR(act.amount)}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                          {act.status && (
-                            <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${
+                        {act.status && (
+                          <div className="flex justify-end pt-1">
+                            <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${
                               act.status === "lunas" 
-                                ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                                : "bg-amber-50 text-amber-600 border-amber-100"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                                : "bg-amber-50 text-amber-700 border-amber-100"
                             }`}>
                               {act.status}
                             </span>
-                          )}
-                        </td>
-                      </tr>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
           </div>
         </div>

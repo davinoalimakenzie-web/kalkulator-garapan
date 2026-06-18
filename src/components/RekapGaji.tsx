@@ -23,9 +23,14 @@ export function RekapGaji() {
   const [isPayActionModalOpen, setIsPayActionModalOpen] = useState(false);
   const [payMode, setPayMode] = useState<"options" | "cicil">("options");
   const [payAmount, setPayAmount] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
 
-  const [logSearch, setLogSearch] = useState("");
-  const [logEmployeeFilter, setLogEmployeeFilter] = useState<string>("all");
+  const showError = (msg: string) => {
+    setPayError(msg);
+    setTimeout(() => {
+      setPayError(prev => prev === msg ? null : prev);
+    }, 4500);
+  };
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -162,153 +167,87 @@ export function RekapGaji() {
 
   const handlePayFull = async () => {
     if (!selectedEmployeeId) return;
-    const summary = employeeSummaries.find(e => e.employeeId === selectedEmployeeId);
-    if (!summary) return;
-    const amount = summary.unpaidBalance;
+    const amount = allTimeEmployeeBalances[selectedEmployeeId] || 0;
 
     if (amount <= 0) {
-      alert("Komisi karyawan ini sudah lunas!");
+      showError("Komisi karyawan ini sudah lunas!");
       return;
     }
 
     if (amount > centralBalance) {
-      alert("Saldo pusat tidak mencukupi!");
+      showError("Saldo pusat tidak mencukupi!");
       return;
     }
 
-    await updateCentralBalance(amount, false);
-    await addTransaction({
-      employeeId: selectedEmployeeId,
-      type: "pelunasan",
-      amount,
-      date: new Date().toISOString().split("T")[0],
-    });
+    try {
+      await updateCentralBalance(amount, false);
+      await addTransaction({
+        employeeId: selectedEmployeeId,
+        type: "pelunasan",
+        amount,
+        date: new Date().toISOString().split("T")[0],
+      });
 
-    // Update pending jobs
-    const pendingJobs = jobs.filter(
-      (j) => (j.employeeId === selectedEmployeeId || j.employeeName === selectedEmployeeId) && (j.status || "pending") === "pending"
-    );
-    for (const job of pendingJobs) {
-      await updateJobStatus(job.id, "lunas");
-    }
-
-    setIsPayActionModalOpen(false);
-  };
-
-  const handlePayCicil = async () => {
-    const amount = Number(payAmount);
-    if (amount <= 0 || !selectedEmployeeId) return;
-
-    const summary = employeeSummaries.find(e => e.employeeId === selectedEmployeeId);
-    if (!summary) return;
-    const unpaid = summary.unpaidBalance;
-
-    if (amount > unpaid) {
-      alert("Jumlah pembayaran melebihi sisa jatah komisi!");
-      return;
-    }
-
-    if (amount > centralBalance) {
-      alert("Saldo pusat tidak mencukupi!");
-      return;
-    }
-
-    await updateCentralBalance(amount, false);
-    await addTransaction({
-      employeeId: selectedEmployeeId,
-      type: "pelunasan",
-      amount,
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    // If fully paid, update statuses
-    if (amount === unpaid) {
+      // Update pending jobs
       const pendingJobs = jobs.filter(
         (j) => (j.employeeId === selectedEmployeeId || j.employeeName === selectedEmployeeId) && (j.status || "pending") === "pending"
       );
       for (const job of pendingJobs) {
-         await updateJobStatus(job.id, "lunas");
+        await updateJobStatus(job.id, "lunas");
       }
-    }
 
-    setPayAmount("");
-    setIsPayActionModalOpen(false);
+      setIsPayActionModalOpen(false);
+    } catch (e: any) {
+      showError("Terjadi kesalahan sistem saat melakukan pelunasan.");
+      console.error(e);
+    }
   };
 
-  // Build unified activities logs list
-  const allActivities = useMemo(() => {
-    const jobLogs = jobs.map((job) => {
-      const sName = services.find((s) => s.id === job.serviceId)?.name || "Garapan Tanpa Nama";
-      return {
-        id: job.id,
-        type: "job",
-        date: job.date,
-        title: "Pencatatan Garapan",
-        description: `${job.employeeName} mencatat garapan "${sName}"`,
-        details: `${job.quantity} pcs × komisi ${formatIDR(job.deliveryFee || 0)}`,
-        amount: job.deliveryFee || 0,
-        amountType: "plus",
-        employeeId: job.employeeId || job.employeeName,
-        employeeName: job.employeeName,
-        status: job.status || "pending"
-      };
-    });
+  const handlePayCicil = async () => {
+    const amount = Number(payAmount);
+    if (amount <= 0 || !selectedEmployeeId) {
+      showError("Masukkan nominal pembayaran cicilan yang valid!");
+      return;
+    }
 
-    const txLogs = transactions.map((tx) => {
-      const emp = users.find((u) => u.id === tx.employeeId);
-      const empName = emp ? emp.name : (tx.employeeId === "owner" || tx.employeeId === "owner_withdrawal" ? "Owner" : (tx.employeeId || "Karyawan"));
-      const isPelunasan = tx.type === "pelunasan";
-      const isPenarikan = tx.type === "penarikan";
+    const unpaid = allTimeEmployeeBalances[selectedEmployeeId] || 0;
 
-      return {
-        id: tx.id,
-        type: tx.type,
-        date: tx.date,
-        title: isPelunasan ? "Pelunasan Komisi" : isPenarikan ? "Penarikan Saldo" : "Penyimpanan Titipan",
-        description: isPelunasan 
-          ? `Pembayaran komisi kepada ${empName}` 
-          : isPenarikan 
-            ? `Penarikan sisa saldo oleh ${empName}` 
-            : `Penerimaan titipan dari ${empName}`,
-        details: isPelunasan 
-          ? `Sisa komisi dibayarkan` 
-          : isPenarikan 
-            ? `Saldo ditarik dari kas pusat` 
-            : `Pengurangan saldo kas titipan`,
-        amount: tx.amount,
-        amountType: isPelunasan || isPenarikan ? "minus" : "plus",
-        employeeId: tx.employeeId,
-        employeeName: empName,
-        status: "lunas"
-      };
-    });
+    if (amount > unpaid) {
+      showError("Jumlah pembayaran melebihi sisa jatah komisi!");
+      return;
+    }
 
-    // Merge and sort by date descending
-    return [...jobLogs, ...txLogs].sort((a, b) => b.date.localeCompare(a.date));
-  }, [jobs, transactions, services, users]);
+    if (amount > centralBalance) {
+      showError("Saldo pusat tidak mencukupi!");
+      return;
+    }
 
-  const filteredActivities = useMemo(() => {
-    return allActivities.filter((act) => {
-      // If user is a karyawan, they are only allowed to see their own logs
-      if (currentUser?.role === "karyawan" && act.employeeId !== currentUser.id) {
-        return false;
+    try {
+      await updateCentralBalance(amount, false);
+      await addTransaction({
+        employeeId: selectedEmployeeId,
+        type: "pelunasan",
+        amount,
+        date: new Date().toISOString().split("T")[0],
+      });
+
+      // If fully paid, update statuses
+      if (amount === unpaid) {
+        const pendingJobs = jobs.filter(
+          (j) => (j.employeeId === selectedEmployeeId || j.employeeName === selectedEmployeeId) && (j.status || "pending") === "pending"
+        );
+        for (const job of pendingJobs) {
+           await updateJobStatus(job.id, "lunas");
+        }
       }
-      
-      // 1. Employee Filter
-      if (logEmployeeFilter !== "all" && act.employeeId !== logEmployeeFilter) {
-        return false;
-      }
-      // 2. Search query filter
-      if (logSearch.trim()) {
-        const query = logSearch.toLowerCase();
-        const matchTitle = act.title.toLowerCase().includes(query);
-        const matchDesc = act.description.toLowerCase().includes(query);
-        const matchEmpName = act.employeeName.toLowerCase().includes(query);
-        return matchTitle || matchDesc || matchEmpName;
-      }
-      return true;
-    });
-  }, [allActivities, logEmployeeFilter, logSearch, currentUser]);
+
+      setPayAmount("");
+      setIsPayActionModalOpen(false);
+    } catch (e: any) {
+      showError("Terjadi kesalahan sistem saat melakukan cicilan.");
+      console.error(e);
+    }
+  };
 
   const totalBayarKomisi = useMemo(() => {
     return transactions
@@ -391,7 +330,7 @@ export function RekapGaji() {
                   setWithdrawAmount(sisaSaldo.toString());
                 }
               }}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900 font-bold dark:text-white dark:bg-slate-900 dark:border-slate-700"
             />
             <div className="flex gap-2">
               <button 
@@ -421,7 +360,7 @@ export function RekapGaji() {
               placeholder="Jumlah (Rp)"
               value={formatRupiahInput(depositAmount)}
               onChange={e => setDepositAmount(parseRupiahValue(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900 font-bold dark:text-white dark:bg-slate-900 dark:border-slate-700"
             />
             <div className="flex gap-2">
               <button 
@@ -478,6 +417,13 @@ export function RekapGaji() {
                   </div>
                 </div>
               </div>
+
+              {payError && (
+                <div id="pay-error-banner" className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs px-4 py-3 rounded-xl border border-red-200/50 dark:border-red-900/50 font-semibold flex items-center gap-2">
+                  <span className="shrink-0 text-red-500">⚠️</span>
+                  <span>{payError}</span>
+                </div>
+              )}
 
               {payMode === "options" ? (
                 /* Payment Options Mode */
@@ -539,7 +485,7 @@ export function RekapGaji() {
                       placeholder="Masukkan Jumlah (Rp)"
                       value={formatRupiahInput(payAmount)}
                       onChange={e => setPayAmount(parseRupiahValue(e.target.value))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-lg font-bold font-mono text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-lg font-bold font-mono text-slate-900 dark:text-white dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
                       autoFocus
                     />
                     <div className="flex justify-between items-center text-[10px] text-slate-400 mt-2 uppercase">
@@ -558,7 +504,7 @@ export function RekapGaji() {
                     </button>
                     <button 
                       onClick={handlePayCicil}
-                      disabled={!payAmount || Number(payAmount) <= 0 || Number(payAmount) > centralBalance || Number(payAmount) > (allTimeEmployeeBalances[selectedEmployeeId] || 0)}
+                      disabled={!payAmount || Number(payAmount) <= 0}
                       className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm cursor-pointer"
                     >
                       Konfirmasi Bayar
@@ -601,7 +547,6 @@ export function RekapGaji() {
                   key={emp.employeeId}
                   onClick={() => {
                     setSelectedEmployeeId(emp.employeeId);
-                    setLogEmployeeFilter(emp.employeeId);
                     if (currentUser?.role === 'owner' || currentUser?.role === 'admin') {
                       setPayAmount("");
                       setPayMode("options");
@@ -633,180 +578,6 @@ export function RekapGaji() {
             })}
           </div>
         )}
-      </div>
-
-      {/* Log Semua Aktifitas Section */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden animate-fade-in-up">
-        {/* Log Header */}
-        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              <Activity className="w-4 h-4 text-indigo-500" />
-              Log Semua Aktifitas
-            </h3>
-            <p className="text-[11px] text-slate-400">Daftar log pencatatan garapan dan pelunasan komisi</p>
-          </div>
-
-        </div>
-
-        {/* Log List View - Double-Responsive for Mobile Cards and Widescreen Tables */}
-        <div className="p-0">
-          <div className="max-h-[380px] overflow-y-auto">
-            {filteredActivities.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Clock className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                <p className="text-xs font-semibold">Belum ada aktifitas yang cocok.</p>
-                <p className="text-[10px] mt-0.5">Coba sesuaikan filter atau kata kunci.</p>
-              </div>
-            ) : (
-              <>
-                {/* Desktop View Table (hidden on mobile screen) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold z-10 shadow-sm">
-                      <tr>
-                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Tanggal</th>
-                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Aktivitas</th>
-                        <th className="py-2.5 px-4 whitespace-nowrap bg-slate-50">Pelaku</th>
-                        <th className="py-2.5 px-4 bg-slate-50">Keterangan / Rincian</th>
-                        <th className="py-2.5 px-4 text-right whitespace-nowrap bg-slate-50">Jumlah</th>
-                        <th className="py-2.5 px-4 text-center whitespace-nowrap bg-slate-50">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-600">
-                      {filteredActivities.map((act) => {
-                        const isRepayment = act.type === "pelunasan";
-                        const isWithdrawal = act.type === "penarikan";
-
-                        let iconColorClass = "bg-indigo-50 text-indigo-600";
-                        let rowBgColorClass = "hover:bg-slate-50/50";
-                        if (isRepayment) {
-                          iconColorClass = "bg-emerald-50 text-emerald-600";
-                        } else if (isWithdrawal) {
-                          iconColorClass = "bg-amber-50 text-amber-600";
-                        }
-
-                        return (
-                          <tr key={act.id} className={`${rowBgColorClass} transition-colors`}>
-                            <td className="py-2.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                              {act.date}
-                            </td>
-                            <td className="py-2.5 px-4 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`p-1 rounded-md shrink-0 ${iconColorClass}`}>
-                                  {isRepayment ? (
-                                    <ArrowDownLeft className="w-3.5 h-3.5" />
-                                  ) : isWithdrawal ? (
-                                    <ArrowUpRight className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Activity className="w-3.5 h-3.5" />
-                                  )}
-                                </span>
-                                <span className="font-semibold text-slate-700">{act.title}</span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-4 font-medium text-slate-800 whitespace-nowrap">
-                              {act.employeeName}
-                            </td>
-                            <td className="py-2.5 px-4 min-w-[220px]">
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                <span className="text-slate-600 font-medium">{act.description}</span>
-                                {act.details && (
-                                  <>
-                                    <span className="text-slate-300 hidden sm:inline">•</span>
-                                    <span className="text-[10px] text-slate-400 font-mono italic">{act.details}</span>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                            <td className={`py-2.5 px-4 text-right font-bold font-mono whitespace-nowrap ${isRepayment || isWithdrawal ? "text-rose-600" : "text-indigo-600"}`}>
-                              {act.amountType === "minus" ? "-" : "+"}{formatIDR(act.amount)}
-                            </td>
-                            <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                              {act.status && (
-                                <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border ${
-                                  act.status === "lunas" 
-                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                                    : "bg-amber-50 text-amber-600 border-amber-100"
-                                }`}>
-                                  {act.status}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile View List Cards (stacked cards, perfectly sized for modern phone screens) */}
-                <div className="md:hidden divide-y divide-slate-100">
-                  {filteredActivities.map((act) => {
-                    const isRepayment = act.type === "pelunasan";
-                    const isWithdrawal = act.type === "penarikan";
-
-                    let iconColorClass = "bg-indigo-50 text-indigo-600";
-                    if (isRepayment) {
-                      iconColorClass = "bg-emerald-50 text-emerald-600";
-                    } else if (isWithdrawal) {
-                      iconColorClass = "bg-amber-50 text-amber-600";
-                    }
-
-                    return (
-                      <div key={act.id} className="p-3.5 space-y-2 hover:bg-slate-50 transition-all">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-400 font-mono">{act.date}</span>
-                          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider text-[10px]">
-                            Oleh: <strong className="text-slate-700">{act.employeeName}</strong>
-                          </span>
-                        </div>
-
-                        <div className="flex items-start gap-2.5">
-                          <span className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${iconColorClass}`}>
-                            {isRepayment ? (
-                              <ArrowDownLeft className="w-4 h-4" />
-                            ) : isWithdrawal ? (
-                              <ArrowUpRight className="w-4 h-4" />
-                            ) : (
-                              <Activity className="w-4 h-4" />
-                            )}
-                          </span>
-                          
-                          <div className="flex-1 min-w-0 space-y-0.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-slate-800 text-xs sm:text-sm block truncate">{act.title}</span>
-                              <span className={`font-mono text-xs sm:text-sm font-bold shrink-0 ${isRepayment || isWithdrawal ? "text-rose-600" : "text-indigo-600"}`}>
-                                {act.amountType === "minus" ? "-" : "+"}{formatIDR(act.amount)}
-                              </span>
-                            </div>
-                            
-                            <p className="text-xs text-slate-500 leading-tight">{act.description}</p>
-                            {act.details && (
-                              <p className="text-[10px] text-slate-400 font-mono italic truncate">{act.details}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {act.status && (
-                          <div className="flex justify-end pt-1">
-                            <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                              act.status === "lunas" 
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                : "bg-amber-50 text-amber-700 border-amber-100"
-                            }`}>
-                              {act.status}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -4,24 +4,32 @@ import { Calculator, Key, ArrowLeft, Delete, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function Login() {
-  const { users, setCurrentUser } = useAppContext();
+  const { users, setCurrentUser, updateUserPin } = useAppContext();
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // PIN flow: login = standard login, curr_pin = old pin check, new_pin = type new pin, confirm_pin = confirm new pin
+  const [pinFlow, setPinFlow] = useState<"login" | "curr_pin" | "new_pin" | "confirm_pin">("login");
+  const [newPinProposed, setNewPinProposed] = useState("");
 
   const handleSelectUser = (user: any) => {
     setSelectedUser(user);
     setPin("");
     setError("");
+    setSuccessMsg("");
+    setPinFlow("login");
   };
 
   const handleKeyPress = (num: string) => {
     setError("");
+    setSuccessMsg("");
     if (pin.length < 4) {
       const nextPin = pin + num;
       setPin(nextPin);
       if (nextPin.length === 4) {
-        verifyPin(nextPin);
+        processPinAction(nextPin);
       }
     }
   };
@@ -31,15 +39,69 @@ export function Login() {
     setPin(p => p.slice(0, -1));
   };
 
-  const verifyPin = (enteredPin: string) => {
+  const processPinAction = async (enteredPin: string) => {
     if (!selectedUser) return;
-    if (selectedUser.pin === enteredPin) {
-      localStorage.setItem("kalkulator_karyawan_uid", selectedUser.id);
-      setCurrentUser(selectedUser);
-    } else {
-      setError("PIN yang Anda masukkan salah. Silakan coba lagi.");
+    
+    if (pinFlow === "login") {
+      if (selectedUser.pin === enteredPin) {
+        localStorage.setItem("kalkulator_karyawan_uid", selectedUser.id);
+        setCurrentUser(selectedUser);
+      } else {
+        setError("PIN yang Anda masukkan salah. Silakan coba lagi.");
+        setPin("");
+      }
+    } else if (pinFlow === "curr_pin") {
+      if (selectedUser.pin === enteredPin) {
+        setPinFlow("new_pin");
+        setPin("");
+        setError("");
+        setSuccessMsg("PIN lama benar! Silakan masukkan PIN Baru Anda.");
+      } else {
+        setError("PIN lama salah. Pembatalan.");
+        setPin("");
+        setPinFlow("login");
+      }
+    } else if (pinFlow === "new_pin") {
+      setNewPinProposed(enteredPin);
+      setPinFlow("confirm_pin");
       setPin("");
+      setError("");
+      setSuccessMsg("Silakan Ulangi PIN baru untuk konfirmasi.");
+    } else if (pinFlow === "confirm_pin") {
+      if (enteredPin === newPinProposed) {
+        try {
+          await updateUserPin(selectedUser.id, enteredPin);
+          // Sync current local instance pin
+          selectedUser.pin = enteredPin;
+          setSuccessMsg("PIN berhasil diperbarui! Silakan masukkan PIN untuk masuk.");
+          setPinFlow("login");
+          setPin("");
+          setError("");
+        } catch (err) {
+          setError("Gagal memperbarui PIN di database.");
+          setPin("");
+          setPinFlow("login");
+        }
+      } else {
+        setError("Konfirmasi PIN tidak sesuai. Pembatalan.");
+        setPin("");
+        setPinFlow("login");
+      }
     }
+  };
+
+  const getFlowTitle = () => {
+    if (pinFlow === "login") return "Masukkan PIN";
+    if (pinFlow === "curr_pin") return "Verifikasi PIN Lama";
+    if (pinFlow === "new_pin") return "Buat PIN Baru";
+    return "Konfirmasi PIN Baru";
+  };
+
+  const getFlowSub = () => {
+    if (pinFlow === "login") return "Masukkan 4 digit PIN Anda untuk masuk";
+    if (pinFlow === "curr_pin") return "Masukkan PIN lama untuk keamanan verifikasi";
+    if (pinFlow === "new_pin") return "Ketik 4 digit nomor PIN baru Anda";
+    return "Ketik ulang PIN baru Anda sekali lagi";
   };
 
   const getInitials = (name: string) => {
@@ -119,13 +181,48 @@ export function Login() {
                 transition={{ duration: 0.2 }}
                 className="space-y-5"
               >
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Kembali Pilih Akun
-                </button>
+                <div className="flex justify-between items-center px-1">
+                  <button
+                    onClick={() => {
+                      setSelectedUser(null);
+                      setPinFlow("login");
+                      setPin("");
+                      setError("");
+                      setSuccessMsg("");
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Kembali
+                  </button>
+
+                  {pinFlow === "login" ? (
+                    <button
+                      onClick={() => {
+                        setPinFlow("curr_pin");
+                        setPin("");
+                        setError("");
+                        setSuccessMsg("");
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors hover:underline cursor-pointer"
+                    >
+                      <Key className="w-3.5 h-3.5 text-indigo-500" />
+                      Ubah PIN Login
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setPinFlow("login");
+                        setPin("");
+                        setError("");
+                        setSuccessMsg("");
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                    >
+                      Batal Ubah PIN
+                    </button>
+                  )}
+                </div>
 
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mx-auto text-base border border-indigo-200 mb-2">
@@ -135,7 +232,24 @@ export function Login() {
                   <p className="text-slate-500 text-xs capitalize">
                     {selectedUser.role === "karyawan" ? "mitra" : selectedUser.role}
                   </p>
+                  <div className="mt-2 text-center bg-slate-50 dark:bg-slate-900/40 py-1.5 px-3 rounded-lg border border-slate-100 dark:border-slate-800 inline-block">
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-300">
+                      {getFlowTitle()}
+                    </span>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{getFlowSub()}</p>
+                  </div>
                 </div>
+
+                {successMsg && (
+                  <motion.div 
+                    initial={{ scale: 0.95 }}
+                    animate={{ scale: 1 }}
+                    className="bg-emerald-50 text-emerald-750 text-[11px] px-3 py-2 rounded-xl border border-emerald-110 flex items-center gap-1.5 font-medium shadow-sm"
+                  >
+                    <span>✅</span>
+                    <span>{successMsg}</span>
+                  </motion.div>
+                )}
 
                 {error && (
                   <motion.div 

@@ -24,6 +24,13 @@ function Dashboard() {
     }
   }, []);
 
+  // Prevent unauthorized access to setting view
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "owner" && currentUser.role !== "admin" && activeView === "setting") {
+      setActiveView("input");
+    }
+  }, [currentUser, activeView]);
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">Loading...</div>;
   }
@@ -82,7 +89,7 @@ function Dashboard() {
       </header>
 
       <main className={`max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pb-4 sm:pb-8 mb-24 md:mb-8 ${activeView === "rekap" ? "pt-0" : "pt-1.5 sm:pt-3"}`}>
-        {activeView === "setting" && (currentUser.role === "owner" || currentUser.role === "admin") && <Setting />}
+        {(activeView === "setting" && (currentUser.role === "owner" || currentUser.role === "admin")) && <Setting />}
         {activeView === "input" && <InputPekerjaan />}
         {activeView === "rekap" && <RekapGaji />}
         {activeView === "log" && <LogSemuaAktifitas />}

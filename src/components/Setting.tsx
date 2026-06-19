@@ -22,7 +22,13 @@ export function Setting() {
   });
 
   const [isAddingUser, setIsAddingUser] = useState(false);
-  const [userForm, setUserForm] = useState({ name: "", pin: "", role: "karyawan" as "owner" | "admin" | "karyawan" });
+  const [userForm, setUserForm] = useState({ 
+    name: "", 
+    pin: "", 
+    role: "karyawan" as "owner" | "admin" | "karyawan",
+    whatsapp: "",
+    bankAccount: ""
+  });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains("dark");
@@ -112,10 +118,12 @@ export function Setting() {
     await addUser({
       name: userForm.name,
       pin: userForm.pin,
-      role: userForm.role
+      role: userForm.role,
+      whatsapp: userForm.whatsapp || "",
+      bankAccount: userForm.bankAccount || ""
     }, tempId);
 
-    setUserForm({ name: "", pin: "", role: "karyawan" });
+    setUserForm({ name: "", pin: "", role: "karyawan", whatsapp: "", bankAccount: "" });
     setIsAddingUser(false);
   };
 
@@ -440,6 +448,30 @@ export function Setting() {
                       </select>
                     </div>
                  </div>
+
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">No. WhatsApp (WA)</label>
+                      <input
+                        type="text"
+                        value={userForm.whatsapp || ""}
+                        onChange={(e) => setUserForm({ ...userForm, whatsapp: e.target.value.replace(/\D/g, "") })}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-755 rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all dark:text-slate-150"
+                        placeholder="Contoh: 08123456789"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">No. Rekening Bank</label>
+                      <input
+                        type="text"
+                        value={userForm.bankAccount || ""}
+                        onChange={(e) => setUserForm({ ...userForm, bankAccount: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-755 rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all dark:text-slate-150"
+                        placeholder="Contoh: BCA 12345678 a/n Nama"
+                      />
+                    </div>
+                 </div>
+
                  <div className="flex gap-2 justify-end">
                     <button type="button" onClick={() => setIsAddingUser(false)} className="flex items-center bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer">
                       Batal
@@ -459,6 +491,7 @@ export function Setting() {
                       <tr className="bg-slate-150 dark:bg-slate-800 border-b border-slate-205 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                         <th className="py-1.5 px-3 font-semibold">Nama Lengkap</th>
                         <th className="py-1.5 px-3 font-semibold">PIN</th>
+                        <th className="py-1.5 px-3 font-semibold">No WA & Rekening</th>
                         <th className="py-1.5 px-3 font-semibold">Akses</th>
                         <th className="py-1.5 px-3 font-semibold text-right">Ubah Level / Aksi</th>
                       </tr>
@@ -480,6 +513,34 @@ export function Setting() {
                               }}
                               className="w-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-center font-mono focus:ring-1 focus:ring-indigo-500 outline-none text-[11px] dark:text-slate-100 font-bold"
                             />
+                          </td>
+                          <td className="py-1.5 px-3">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-slate-400 shrink-0 font-medium">WA:</span>
+                                <input
+                                  type="text"
+                                  value={user.whatsapp || ""}
+                                  placeholder="Belum diatur"
+                                  onChange={async (e) => {
+                                    await updateDoc(doc(db, "users", user.id), { whatsapp: e.target.value.replace(/\D/g, "") });
+                                  }}
+                                  className="w-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-indigo-500 outline-none text-[10px] dark:text-slate-100 font-semibold"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-slate-400 shrink-0 font-medium">Rek:</span>
+                                <input
+                                  type="text"
+                                  value={user.bankAccount || ""}
+                                  placeholder="Belum diatur"
+                                  onChange={async (e) => {
+                                    await updateDoc(doc(db, "users", user.id), { bankAccount: e.target.value });
+                                  }}
+                                  className="w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-indigo-500 outline-none text-[10px] dark:text-slate-100 font-semibold"
+                                />
+                              </div>
+                            </div>
                           </td>
                           <td className="py-1.5 px-3">
                             <span className={`inline-block px-2 py-0.5 text-[9px] font-bold uppercase rounded-full ${
@@ -549,6 +610,33 @@ export function Setting() {
                           }`}>
                             {user.role === "karyawan" ? "mitra" : user.role}
                           </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                          <div className="flex items-center gap-1 bg-white dark:bg-slate-850 px-2 py-0.5 rounded border border-slate-205 dark:border-slate-700">
+                            <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase shrink-0">WA</span>
+                            <input
+                              type="text"
+                              value={user.whatsapp || ""}
+                              onChange={async (e) => {
+                                await updateDoc(doc(db, "users", user.id), { whatsapp: e.target.value.replace(/\D/g, "") });
+                              }}
+                              className="w-full bg-transparent text-left focus:outline-none text-[10px] dark:text-slate-100 font-semibold"
+                              placeholder="No WA"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 bg-white dark:bg-slate-850 px-2 py-0.5 rounded border border-slate-205 dark:border-slate-700">
+                            <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase shrink-0">Rek</span>
+                            <input
+                              type="text"
+                              value={user.bankAccount || ""}
+                              onChange={async (e) => {
+                                await updateDoc(doc(db, "users", user.id), { bankAccount: e.target.value });
+                              }}
+                              className="w-full bg-transparent text-left focus:outline-none text-[10px] dark:text-slate-100 font-semibold"
+                              placeholder="Rekening"
+                            />
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 items-center">

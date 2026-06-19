@@ -369,6 +369,17 @@ export function InputPekerjaan() {
 
           </div>
         </form>
+
+        {/* Laporan Garapan Header - Sticky docked directly beneath the form card */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2 sm:py-2.5 flex items-center justify-between flex-wrap gap-2 shadow-sm">
+          <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-xs sm:text-sm">
+            <ClipboardList className="w-4 h-4 text-indigo-500" />
+            Laporan Garapan
+          </h3>
+          <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-extrabold rounded-lg text-[10.5px] sm:text-xs transition-all border border-indigo-100 dark:border-indigo-900/50 shadow-sm flex items-center gap-1">
+            Total Pending: {formatIDR(jobs.filter(j => (j.status || "pending") !== "lunas").reduce((sum, j) => sum + (j.deliveryFee || 0), 0))}
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -453,17 +464,7 @@ export function InputPekerjaan() {
         })()}
 
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between flex-wrap gap-2">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-150 flex items-center gap-2 text-sm sm:text-base">
-              <ClipboardList className="w-5 h-5 text-indigo-500" />
-              Laporan Garapan
-            </h3>
-            <span className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-bold rounded-lg text-xs md:text-sm transition-all border border-indigo-100 dark:border-indigo-900/50 shadow-sm flex items-center gap-1.5">
-              Total Pending: {formatIDR(jobs.filter(j => (j.status || "pending") !== "lunas").reduce((sum, j) => sum + (j.deliveryFee || 0), 0))}
-            </span>
-          </div>
-          
-          <div className="text-sm max-h-[400px] overflow-y-auto relative bg-white dark:bg-slate-800">
+          <div className="text-sm max-h-[380px] overflow-y-auto relative bg-white dark:bg-slate-800">
             {recentJobs.length === 0 ? (
               <div className="p-8 text-center text-slate-500 dark:text-slate-400 flex flex-col justify-center items-center">
                 <p>Belum ada garapan yang diinput.</p>
@@ -496,17 +497,17 @@ export function InputPekerjaan() {
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
                             <button
-                              disabled={currentUser?.role !== "owner" && currentUser?.role !== "admin"}
+                              disabled={currentUser?.role !== "owner"}
                               onClick={() => {
                                 const nextStatus = (job.status || "pending") === "pending" ? "lunas" : "pending";
                                 updateJobStatus(job.id, nextStatus);
                               }}
                               className={`px-2 py-0.5 font-bold rounded text-xs transition-colors border ${
                                 (job.status || "pending") === "lunas"
-                                  ? "bg-green-50 text-green-700 border-green-100 dark:bg-green-950/30 dark:text-green-400 dark:border-green-905"
-                                  : "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-955/30 dark:text-amber-400 dark:border-amber-905"
-                              } ${currentUser?.role !== "owner" && currentUser?.role !== "admin" ? "cursor-default" : "cursor-pointer"}`}
-                              title={currentUser?.role === "owner" || currentUser?.role === "admin" ? "Klik untuk mengubah status" : ""}
+                                  ? "bg-green-50 text-green-755 border-green-100 dark:bg-green-950/30 dark:text-green-400 dark:border-green-905"
+                                  : "bg-amber-50 text-amber-777 border-amber-100 dark:bg-amber-955/30 dark:text-amber-400 dark:border-amber-905"
+                              } ${currentUser?.role !== "owner" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                              title={currentUser?.role === "owner" ? "Klik untuk mengubah status" : "Beku - Hanya Owner"}
                             >
                               {(job.status || "pending") === "lunas" ? "Lunas" : "Pending"}
                             </button>
@@ -548,7 +549,7 @@ export function InputPekerjaan() {
                           <div className="flex items-center gap-1.5">
                             {/* Tap status key button */}
                             <button
-                              disabled={currentUser?.role !== "owner" && currentUser?.role !== "admin"}
+                              disabled={currentUser?.role !== "owner"}
                               onClick={() => {
                                 const nextStatus = (job.status || "pending") === "pending" ? "lunas" : "pending";
                                 updateJobStatus(job.id, nextStatus);
@@ -557,7 +558,8 @@ export function InputPekerjaan() {
                                 isLunas
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900"
                                   : "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-955/30 dark:text-amber-400 dark:border-amber-900"
-                              }`}
+                              } ${currentUser?.role !== "owner" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                              title={currentUser?.role === "owner" ? "Ubah status" : "Beku - Hanya Owner"}
                             >
                               {isLunas ? "Lunas" : "Pending"}
                             </button>

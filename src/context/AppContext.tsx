@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Job, Service, UserProfile, SalaryTransaction } from "../types";
+import { Job, Service, UserProfile, SalaryTransaction, PaymentRequest } from "../types";
 import { db, auth } from "../lib/firebase";
 import { 
   collection, doc, onSnapshot, setDoc, deleteDoc, 
@@ -26,11 +26,15 @@ interface AppContextType {
   updateJobStatus: (id: string, status: "pending" | "lunas") => Promise<void>;
 
   addUser: (user: Omit<UserProfile, "id">, uid: string) => Promise<void>;
+  updateUserPin: (uid: string, newPin: string) => Promise<void>;
   
   addTransaction: (tx: Omit<SalaryTransaction, "id" | "createdAt">) => Promise<void>;
   updateCentralBalance: (amount: number, isAdding: boolean) => Promise<void>;
   
   signOut: () => Promise<void>;
+  paymentRequests: PaymentRequest[];
+  addPaymentRequest: (req: Omit<PaymentRequest, "id" | "status" | "createdAt">) => Promise<void>;
+  updatePaymentRequestStatus: (id: string, status: "pending" | "lunas" | "ditolak", proofUrl?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +51,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [transactions, setTransactions] = useState<SalaryTransaction[]>([]);
   const [centralBalance, setCentralBalance] = useState<number>(0);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
 
   // Background anonymous authentication to satisfy Firestore security rules
   useEffect(() => {
@@ -78,7 +83,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           name: data.name || "",
           role: data.role || "karyawan",
           pin: data.pin || "1234",
-          email: data.email
+          email: data.email,
+          whatsapp: data.whatsapp || "",
+          bankAccount: data.bankAccount || ""
         } as UserProfile;
       });
       
@@ -147,12 +154,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     });
 
+    const prQuery = query(collection(db, "payment_requests"), orderBy("createdAt", "desc"));
+    const unsubPR = onSnapshot(prQuery, (snap) => {
+      setPaymentRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentRequest)));
+    });
+
     return () => {
       unsubUsers();
       unsubServices();
       unsubJobs();
       unsubTx();
       unsubBalance();
+      unsubPR();
     };
   }, [firebaseReady]);
 
@@ -197,6 +210,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     await updateDoc(doc(db, "central_balance", "main"), { balance: newBalance });
   };
 
+  const updateUserPin = async (uid: string, newPin: string) => {
+    await updateDoc(doc(db, "users", uid), { pin: newPin });
+  };
+
+  const addPaymentRequest = async (req: Omit<PaymentRequest, "id" | "status" | "createdAt">) => {
+    await addDoc(collection(db, "payment_requests"), {
+      ...req,
+      status: "pending",
+      createdAt: Date.now()
+    });
+  };
+
+  const updatePaymentRequestStatus = async (id: string, status: "pending" | "lunas" | "ditolak", proofUrl?: string) => {
+    const updateData: any = { status, updatedAt: Date.now() };
+    if (proofUrl !== undefined) {
+      updateData.proofUrl = proofUrl;
+    }
+    await updateDoc(doc(db, "payment_requests", id), updateData);
+  };
+
   const signOut = async () => {
     localStorage.removeItem("kalkulator_karyawan_uid");
     setCurrentUser(null);
@@ -222,7 +255,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         addUser,
         addTransaction,
         updateCentralBalance,
-        signOut
+        updateUserPin,
+        signOut,
+        paymentRequests,
+        addPaymentRequest,
+        updatePaymentRequestStatus
       }}
     >
       {children}

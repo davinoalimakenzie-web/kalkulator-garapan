@@ -24,6 +24,20 @@ export interface UserProfile {
   role: "owner" | "admin" | "karyawan";
   pin: string;
   email?: string;
+  whatsapp?: string;
+  bankAccount?: string;
+}
+
+export interface PaymentRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  amount: number;
+  date: string;
+  status: "pending" | "lunas" | "ditolak";
+  proofUrl?: string; // Standard text representation of the Transfer Proof (e.g. text/image description or link)
+  createdAt: number;
+  updatedAt?: number;
 }
 
 export interface SalaryTransaction {
@@ -33,5 +47,6 @@ export interface SalaryTransaction {
   amount: number;
   date: string;
   note?: string;
+  proofUrl?: string;
   createdAt: number;
 }

@@ -513,24 +513,26 @@ export function InputPekerjaan() {
                             </button>
                           </td>
                           <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => handleDeleteClick(job.id)}
-                              className={`p-1.5 rounded transition-all inline-flex items-center gap-1 ${
-                                confirmDeleteId === job.id
-                                  ? "text-red-700 bg-red-100 dark:bg-red-955 dark:text-red-300 font-bold text-[10px] px-2 py-1"
-                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                              }`}
-                              title={confirmDeleteId === job.id ? "Klik lagi untuk menghapus" : "Hapus"}
-                            >
-                              {confirmDeleteId === job.id ? (
-                                <>
-                                  <Trash2 className="w-4 h-4 text-red-600 shrink-0" />
-                                  <span>Yakin?</span>
-                                </>
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
+                            {(!((job.status || "pending") === "lunas" && currentUser?.role !== "owner")) && (
+                              <button
+                                onClick={() => handleDeleteClick(job.id)}
+                                className={`p-1.5 rounded transition-all inline-flex items-center gap-1 ${
+                                  confirmDeleteId === job.id
+                                    ? "text-red-700 bg-red-100 dark:bg-red-955 dark:text-red-300 font-bold text-[10px] px-2 py-1"
+                                    : "text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                }`}
+                                title={confirmDeleteId === job.id ? "Klik lagi untuk menghapus" : "Hapus"}
+                              >
+                                {confirmDeleteId === job.id ? (
+                                  <>
+                                    <Trash2 className="w-4 h-4 text-red-600 shrink-0" />
+                                    <span>Yakin?</span>
+                                  </>
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -564,24 +566,26 @@ export function InputPekerjaan() {
                               {isLunas ? "Lunas" : "Pending"}
                             </button>
 
-                            <button
-                              onClick={() => handleDeleteClick(job.id)}
-                              className={`p-1 rounded transition-all inline-flex items-center gap-1 ${
-                                confirmDeleteId === job.id
-                                  ? "text-red-700 bg-red-100 dark:bg-red-955 dark:text-red-300 font-bold text-[10px] px-1.5 py-0.5"
-                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                              }`}
-                              title={confirmDeleteId === job.id ? "Klik lagi untuk menghapus" : "Hapus"}
-                            >
-                              {confirmDeleteId === job.id ? (
-                                <>
-                                  <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                  <span>Yakin?</span>
-                                </>
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                            </button>
+                            {(!isLunas || currentUser?.role === "owner") && (
+                              <button
+                                onClick={() => handleDeleteClick(job.id)}
+                                className={`p-1 rounded transition-all inline-flex items-center gap-1 ${
+                                  confirmDeleteId === job.id
+                                    ? "text-red-700 bg-red-100 dark:bg-red-955 dark:text-red-300 font-bold text-[10px] px-1.5 py-0.5"
+                                    : "text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                }`}
+                                title={confirmDeleteId === job.id ? "Klik lagi untuk menghapus" : "Hapus"}
+                              >
+                                {confirmDeleteId === job.id ? (
+                                  <>
+                                    <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                    <span>Yakin?</span>
+                                  </>
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         </div>
 

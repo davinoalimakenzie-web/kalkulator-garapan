@@ -28,3 +28,17 @@ export const parseRupiahValue = (formattedVal: string): string => {
 export const generateId = () => {
   return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 };
+
+export const formatDateTime = (timestamp: any, fallbackDate: string) => {
+  if (timestamp && timestamp.toDate) {
+    const date = timestamp.toDate();
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${mins}:${ss}`;
+  }
+  return fallbackDate;
+};

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { formatIDR } from "../lib/utils";
+import { formatIDR, formatDateTime } from "../lib/utils";
 import { useAppContext } from "../context/AppContext";
 import { Clock, Activity, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
@@ -15,7 +15,8 @@ export function LogSemuaAktifitas() {
       return {
         id: job.id,
         type: "job",
-        date: job.date,
+        date: formatDateTime(job.createdAt, job.date),
+        sortDate: job.createdAt?.toDate ? job.createdAt.toDate().getTime() : new Date(job.date).getTime(),
         title: "Catat Garapan",
         description: `${job.quantity}${isSet ? " Set" : "x"} ${sName}`,
         details: `${job.quantity} ${isSet ? "Set" : "pcs"}`,
@@ -36,12 +37,13 @@ export function LogSemuaAktifitas() {
       return {
         id: tx.id,
         type: tx.type,
-        date: tx.date,
-        title: isPelunasan ? "Bayar Komisi" : isPenarikan ? "Tarik Saldo" : "Titipan",
+        date: formatDateTime((tx as any).createdAt, tx.date),
+        sortDate: (tx as any).createdAt?.toDate ? (tx as any).createdAt.toDate().getTime() : new Date(tx.date).getTime(),
+        title: isPelunasan ? "Bayar Komisi" : isPenarikan ? "Tarik Kasbon" : "Titipan",
         description: isPelunasan 
           ? `Lunas ke ${empName}` 
           : isPenarikan 
-            ? `Tarik oleh ${empName}` 
+            ? `Kasbon oleh ${empName}` 
             : `Titipan ${empName}`,
         details: isPelunasan ? "Lunas" : isPenarikan ? "Kas Pusat" : "Kas Titipan",
         amount: tx.amount,
@@ -52,8 +54,8 @@ export function LogSemuaAktifitas() {
       };
     });
 
-    // Merge and sort by date descending
-    return [...jobLogs, ...txLogs].sort((a, b) => b.date.localeCompare(a.date));
+    // Merge and sort by timestamp descending
+    return [...jobLogs, ...txLogs].sort((a, b) => b.sortDate - a.sortDate);
   }, [jobs, transactions, services, users]);
 
   const filteredActivities = useMemo(() => {

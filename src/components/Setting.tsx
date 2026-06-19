@@ -560,7 +560,7 @@ export function Setting() {
                                >
                                  <option value="karyawan">Mitra</option>
                                  <option value="admin">Admin</option>
-                                 {currentUser?.role === "owner" && <option value="owner">Owner</option>}
+                                 {(currentUser?.role === "owner" || user.role === "owner") && <option value="owner">Owner</option>}
                                </select>
                                {user.id !== currentUser?.id && (
                                  <button
@@ -666,7 +666,7 @@ export function Setting() {
                             >
                               <option value="karyawan">Mitra</option>
                               <option value="admin">Admin</option>
-                              {currentUser?.role === "owner" && <option value="owner">Owner</option>}
+                              {(currentUser?.role === "owner" || user.role === "owner") && <option value="owner">Owner</option>}
                             </select>
 
                             {user.id !== currentUser?.id && (

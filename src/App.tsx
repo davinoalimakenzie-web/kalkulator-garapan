@@ -3,12 +3,13 @@ import { AppProvider, useAppContext } from "./context/AppContext";
 import { Setting } from "./components/Setting";
 import { InputPekerjaan } from "./components/InputPekerjaan";
 import { RekapGaji } from "./components/RekapGaji";
+import { TugasMitra } from "./components/TugasMitra";
 import { LogSemuaAktifitas } from "./components/LogSemuaAktifitas";
 import { Login } from "./components/Login";
-import { Calculator, ClipboardEdit, LayoutDashboard, WalletCards, LogOut, History, Moon, Sun } from "lucide-react";
+import { Calculator, ClipboardEdit, LayoutDashboard, WalletCards, LogOut, History, ClipboardList } from "lucide-react";
 
 
-type ViewState = "setting" | "input" | "rekap" | "log";
+type ViewState = "setting" | "input" | "tugas" | "rekap" | "log";
 
 function Dashboard() {
   const { currentUser, authLoading, signOut } = useAppContext();
@@ -24,9 +25,12 @@ function Dashboard() {
     }
   }, []);
 
-  // Prevent unauthorized access to setting view
+  // Prevent unauthorized access to setting/log view
   useEffect(() => {
     if (currentUser && currentUser.role !== "owner" && currentUser.role !== "admin" && activeView === "setting") {
+      setActiveView("input");
+    }
+    if (currentUser && currentUser.role !== "owner" && activeView === "log") {
       setActiveView("input");
     }
   }, [currentUser, activeView]);
@@ -57,12 +61,17 @@ function Dashboard() {
               <NavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-4 h-4" />}>
                 Input
               </NavButton>
+              <NavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-4 h-4" />}>
+                Tugas
+              </NavButton>
               <NavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-4 h-4" />}>
                 Rekap
               </NavButton>
-              <NavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-4 h-4" />}>
-                Log
-              </NavButton>
+              {(currentUser.role === 'owner') && (
+                <NavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-4 h-4" />}>
+                  Log
+                </NavButton>
+              )}
               {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
                 <NavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-4 h-4" />}>
                   Setting
@@ -91,6 +100,7 @@ function Dashboard() {
       <main className={`max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pb-4 sm:pb-8 mb-24 md:mb-8 ${activeView === "rekap" ? "pt-0" : "pt-1.5 sm:pt-3"}`}>
         {(activeView === "setting" && (currentUser.role === "owner" || currentUser.role === "admin")) && <Setting />}
         {activeView === "input" && <InputPekerjaan />}
+        {activeView === "tugas" && <TugasMitra />}
         {activeView === "rekap" && <RekapGaji />}
         {activeView === "log" && <LogSemuaAktifitas />}
       </main>
@@ -98,8 +108,11 @@ function Dashboard() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700/80 z-40 pb-safe">
         <div className="flex justify-around items-center h-16 px-2">
           <MobileNavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-5 h-5" />} label="Input" />
+          <MobileNavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-5 h-5" />} label="Tugas" />
           <MobileNavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-5 h-5" />} label="Rekap" />
-          <MobileNavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-5 h-5" />} label="Log" />
+          {(currentUser.role === 'owner') && (
+            <MobileNavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-5 h-5" />} label="Log" />
+          )}
           {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
             <MobileNavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-5 h-5" />} label="Setting" />
           )}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Job, Service, UserProfile, SalaryTransaction, PaymentRequest } from "../types";
+import { Job, Service, UserProfile, SalaryTransaction, PaymentRequest, PartnerTask } from "../types";
 import { db, auth } from "../lib/firebase";
 import { 
   collection, doc, onSnapshot, setDoc, deleteDoc, 
@@ -35,6 +35,11 @@ interface AppContextType {
   paymentRequests: PaymentRequest[];
   addPaymentRequest: (req: Omit<PaymentRequest, "id" | "status" | "createdAt">) => Promise<void>;
   updatePaymentRequestStatus: (id: string, status: "pending" | "lunas" | "ditolak", proofUrl?: string) => Promise<void>;
+
+  partnerTasks: PartnerTask[];
+  addPartnerTask: (task: Omit<PartnerTask, "id" | "status" | "createdAt">) => Promise<void>;
+  updatePartnerTaskStatus: (id: string, status: "pending" | "completed", completedAt?: number) => Promise<void>;
+  deletePartnerTask: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -52,6 +57,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [transactions, setTransactions] = useState<SalaryTransaction[]>([]);
   const [centralBalance, setCentralBalance] = useState<number>(0);
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
+  const [partnerTasks, setPartnerTasks] = useState<PartnerTask[]>([]);
 
   // Background anonymous authentication to satisfy Firestore security rules
   useEffect(() => {
@@ -159,6 +165,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       setPaymentRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentRequest)));
     });
 
+    const ptQuery = query(collection(db, "partner_tasks"), orderBy("createdAt", "desc"));
+    const unsubPT = onSnapshot(ptQuery, (snap) => {
+      setPartnerTasks(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PartnerTask)));
+    });
+
     return () => {
       unsubUsers();
       unsubServices();
@@ -166,6 +177,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       unsubTx();
       unsubBalance();
       unsubPR();
+      unsubPT();
     };
   }, [firebaseReady]);
 
@@ -230,6 +242,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     await updateDoc(doc(db, "payment_requests", id), updateData);
   };
 
+  const addPartnerTask = async (task: Omit<PartnerTask, "id" | "status" | "createdAt">) => {
+    await addDoc(collection(db, "partner_tasks"), {
+      ...task,
+      status: "pending",
+      createdAt: Date.now()
+    });
+  };
+
+  const updatePartnerTaskStatus = async (id: string, status: "pending" | "completed", completedAt?: number) => {
+    const updateData: any = { status };
+    if (completedAt !== undefined) {
+      updateData.completedAt = completedAt;
+    }
+    await updateDoc(doc(db, "partner_tasks", id), updateData);
+  };
+
+  const deletePartnerTask = async (id: string) => {
+    await deleteDoc(doc(db, "partner_tasks", id));
+  };
+
   const signOut = async () => {
     localStorage.removeItem("kalkulator_karyawan_uid");
     setCurrentUser(null);
@@ -259,7 +291,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         signOut,
         paymentRequests,
         addPaymentRequest,
-        updatePaymentRequestStatus
+        updatePaymentRequestStatus,
+        partnerTasks,
+        addPartnerTask,
+        updatePartnerTaskStatus,
+        deletePartnerTask
       }}
     >
       {children}

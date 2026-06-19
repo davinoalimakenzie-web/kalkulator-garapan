@@ -16,6 +16,7 @@ export interface Job {
   quantity: number;
   deliveryFee: number;
   status?: "pending" | "lunas";
+  createdAt?: number;
 }
 
 export interface UserProfile {
@@ -36,6 +37,7 @@ export interface PaymentRequest {
   date: string;
   status: "pending" | "lunas" | "ditolak";
   proofUrl?: string; // Standard text representation of the Transfer Proof (e.g. text/image description or link)
+  type?: "pelunasan" | "kasbon";
   createdAt: number;
   updatedAt?: number;
 }
@@ -49,4 +51,18 @@ export interface SalaryTransaction {
   note?: string;
   proofUrl?: string;
   createdAt: number;
+}
+
+export interface PartnerTask {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  serviceId: string;
+  quantity: number;
+  deliveryFee: number;
+  date: string;
+  note?: string;
+  status: "pending" | "completed";
+  createdAt: number;
+  completedAt?: number;
 }

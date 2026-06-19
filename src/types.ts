@@ -2,6 +2,9 @@ export interface Service {
   id: string;
   name: string;
   price: number;
+  isSetEnabled?: boolean;
+  itemsPerSet?: number;
+  pricePerSet?: number;
 }
 
 export interface Job {

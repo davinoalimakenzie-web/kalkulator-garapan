@@ -7,18 +7,13 @@ import {
   Banknote, X, Zap, ChevronRight, ArrowLeft, Clock, Search, ArrowUpRight, ArrowDownLeft, Activity 
 } from "lucide-react";
 
-type FilterType = "today" | "week" | "month" | "all";
+type FilterType = "today" | "week" | "month" | "year" | "all";
 
 export function RekapGaji() {
-  const { jobs, services, users, currentUser, centralBalance, transactions, updateCentralBalance, addTransaction, updateJobStatus } = useAppContext();
+  const { jobs, services, users, currentUser, transactions, addTransaction, updateJobStatus } = useAppContext();
   const [filter, setFilter] = useState<FilterType>("month");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-
-  const [isDepositModalOpen, setDepositModalOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
-
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<number>(-1); // -1 means All Months
 
   const [isPayActionModalOpen, setIsPayActionModalOpen] = useState(false);
   const [payMode, setPayMode] = useState<"options" | "cicil">("options");
@@ -39,9 +34,17 @@ export function RekapGaji() {
       if (filter === "today") return isToday(date);
       if (filter === "week") return isThisWeek(date, { weekStartsOn: 1 });
       if (filter === "month") return isThisMonth(date);
+      if (filter === "year") {
+        const matchesYear = date.getFullYear() === new Date().getFullYear();
+        if (!matchesYear) return false;
+        if (selectedMonth !== -1) {
+          return date.getMonth() === selectedMonth;
+        }
+        return true;
+      }
       return true;
     });
-  }, [jobs, filter]);
+  }, [jobs, filter, selectedMonth]);
 
   const allTimeEmployeeBalances = useMemo(() => {
     const balances: Record<string, number> = {};
@@ -121,6 +124,13 @@ export function RekapGaji() {
     return summaryAll.find(e => e.employeeId === selectedEmployeeId);
   }, [jobs, filteredJobs, allTimeEmployeeBalances, selectedEmployeeId]);
 
+  const periodTotal = useMemo(() => {
+    const jobsForTotal = currentUser?.role === "karyawan" 
+      ? filteredJobs.filter(j => j.employeeId === currentUser.id)
+      : filteredJobs;
+    return jobsForTotal.reduce((sum, j) => sum + (j.deliveryFee || 0), 0);
+  }, [filteredJobs, currentUser]);
+
   React.useEffect(() => {
     if (employeeSummaries.length > 0) {
       if (!selectedEmployeeId || !employeeSummaries.some(e => e.employeeId === selectedEmployeeId)) {
@@ -136,51 +146,16 @@ export function RekapGaji() {
     return services.find(s => s.id === id)?.name || "Layanan Dihapus";
   };
 
-  const handleAddDeposit = async () => {
-    const amount = Number(depositAmount);
-    if (amount > 0) {
-      await updateCentralBalance(amount, true);
-    }
-    setDepositAmount("");
-    setDepositModalOpen(false);
-  };
-
-  const handleWithdrawSaldo = async () => {
-    const amount = Number(withdrawAmount);
-    if (amount <= 0) return;
-    if (amount > centralBalance) {
-      alert("Sisa saldo tidak mencukupi!");
-      return;
-    }
-
-    await updateCentralBalance(amount, false);
-    await addTransaction({
-      employeeId: currentUser?.id || "owner",
-      type: "penarikan",
-      amount,
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    setIsWithdrawModalOpen(false);
-    setWithdrawAmount("");
-  };
-
   const handlePayFull = async () => {
     if (!selectedEmployeeId) return;
     const amount = allTimeEmployeeBalances[selectedEmployeeId] || 0;
 
     if (amount <= 0) {
-      showError("Komisi karyawan ini sudah lunas!");
-      return;
-    }
-
-    if (amount > centralBalance) {
-      showError("Saldo pusat tidak mencukupi!");
+      showError("Komisi mitra ini sudah lunas!");
       return;
     }
 
     try {
-      await updateCentralBalance(amount, false);
       await addTransaction({
         employeeId: selectedEmployeeId,
         type: "pelunasan",
@@ -217,13 +192,7 @@ export function RekapGaji() {
       return;
     }
 
-    if (amount > centralBalance) {
-      showError("Saldo pusat tidak mencukupi!");
-      return;
-    }
-
     try {
-      await updateCentralBalance(amount, false);
       await addTransaction({
         employeeId: selectedEmployeeId,
         type: "pelunasan",
@@ -249,137 +218,8 @@ export function RekapGaji() {
     }
   };
 
-  const totalBayarKomisi = useMemo(() => {
-    return transactions
-      .filter((t) => t.type === "pelunasan")
-      .reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
-
-  const sisaSaldo = centralBalance;
-  const saldoAwal = sisaSaldo + totalBayarKomisi;
-
   return (
     <div className="space-y-4">
-      {/* Sticky Top Header Section (Under the App Header) */}
-      <div className="sticky top-[64px] z-20 bg-slate-50/95 backdrop-blur-md pt-2 pb-2.5 space-y-3 -mx-2.5 px-2.5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-slate-200/50">
-        {(currentUser?.role === 'owner' || currentUser?.role === 'admin') && (
-          <div className="bg-white border text-slate-800 border-slate-200/80 rounded-xl p-3 sm:p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            {/* Col 1: Saldo Awal */}
-            <div className="flex items-center justify-between gap-2 sm:gap-4 pr-0 md:pr-4 py-1.5 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div className="bg-indigo-50 p-2 sm:p-2.5 rounded-xl text-indigo-600 shrink-0">
-                  <Landmark className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Saldo Awal</p>
-                  <p className="text-base sm:text-lg md:text-2xl font-black font-mono text-indigo-700 tracking-tight mt-1 truncate">{formatIDR(saldoAwal)}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setDepositModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer shadow-sm hover:shadow active:scale-[0.98] w-[115px] h-9 ml-auto"
-              >
-                <Plus className="w-3.5 h-3.5 shrink-0" />
-                <span>Top Up Saldo</span>
-              </button>
-            </div>
-
-            {/* Col 2: Sisa Saldo */}
-            <div className="flex items-center justify-between gap-2 sm:gap-4 pt-3 md:pt-0 pl-0 md:pl-4 py-1.5 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div className="bg-emerald-50 p-2 sm:p-2.5 rounded-xl text-emerald-600 shrink-0">
-                  <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Sisa Saldo</p>
-                  <p className="text-base sm:text-lg md:text-2xl font-black font-mono text-emerald-600 tracking-tight mt-1 truncate">{formatIDR(sisaSaldo)}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  if (sisaSaldo <= 0) {
-                    alert("Sisa saldo sudah kosong!");
-                    return;
-                  }
-                  setWithdrawAmount(sisaSaldo.toString());
-                  setIsWithdrawModalOpen(true);
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer shadow-sm hover:shadow active:scale-[0.98] w-[115px] h-9 ml-auto"
-              >
-                <ArrowDownToLine className="w-3.5 h-3.5 shrink-0" />
-                <span>Tarik Saldo</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-      {isWithdrawModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Tarik Sisa Saldo</h3>
-            <p className="text-xs text-slate-500 mb-3 uppercase font-medium">Maksimal yang dapat ditarik: {formatIDR(sisaSaldo)}</p>
-            <input 
-              type="text"
-              placeholder="Jumlah (Rp)"
-              value={formatRupiahInput(withdrawAmount)}
-              onChange={e => {
-                const val = parseRupiahValue(e.target.value);
-                if (Number(val) <= sisaSaldo) {
-                  setWithdrawAmount(val);
-                } else {
-                  setWithdrawAmount(sisaSaldo.toString());
-                }
-              }}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900 font-bold dark:text-white dark:bg-slate-900 dark:border-slate-700"
-            />
-            <div className="flex gap-2">
-              <button 
-                onClick={handleWithdrawSaldo}
-                disabled={!withdrawAmount || Number(withdrawAmount) <= 0}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                Konfirmasi Tarik
-              </button>
-              <button 
-                onClick={() => setIsWithdrawModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isDepositModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Top Up Saldo Pusat</h3>
-            <input 
-              type="text"
-              placeholder="Jumlah (Rp)"
-              value={formatRupiahInput(depositAmount)}
-              onChange={e => setDepositAmount(parseRupiahValue(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-900 font-bold dark:text-white dark:bg-slate-900 dark:border-slate-700"
-            />
-            <div className="flex gap-2">
-              <button 
-                onClick={handleAddDeposit}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium"
-              >
-                Konfirmasi
-              </button>
-              <button 
-                onClick={() => setDepositModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-medium"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Payment Action Popup (Cicil / Bayar Full) */}
       {isPayActionModalOpen && selectedEmployeeId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -488,8 +328,7 @@ export function RekapGaji() {
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-lg font-bold font-mono text-slate-900 dark:text-white dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
                       autoFocus
                     />
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 mt-2 uppercase">
-                      <span>Kas Pusat: {formatIDR(centralBalance)}</span>
+                    <div className="flex justify-end items-center text-[10px] text-slate-400 mt-2 uppercase">
                       <span>Maksimal: {formatIDR(allTimeEmployeeBalances[selectedEmployeeId] || 0)}</span>
                     </div>
                   </div>
@@ -519,24 +358,55 @@ export function RekapGaji() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-transparent pb-0 pt-1">
           <div className="min-w-0">
-            <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 leading-none">Pelunasan Komisi Karyawan</h2>
-            <p className="text-[10px] sm:text-xs text-slate-500 leading-none mt-1">Kelola dan selesaikan kewajiban pembayaran komisi karyawan</p>
+            <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 leading-none">Pelunasan Komisi Mitra</h2>
+            <p className="text-[10px] sm:text-xs text-slate-500 leading-none mt-1">Kelola dan selesaikan kewajiban pembayaran komisi mitra</p>
           </div>
-          <div className="bg-slate-100 p-0.5 rounded-lg flex items-center gap-0.5 self-start sm:self-auto shrink-0 select-none">
-            <FilterButton current={filter} filter="today" onClick={setFilter} label="Hari Ini" />
-            <FilterButton current={filter} filter="week" onClick={setFilter} label="Minggu Ini" />
-            <FilterButton current={filter} filter="month" onClick={setFilter} label="Bulan Ini" />
-            <FilterButton current={filter} filter="all" onClick={setFilter} label="Semua" />
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
+            {filter === "year" && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="bg-white dark:bg-slate-800 border border-slate-205 dark:border-slate-700 rounded-lg px-2.5 py-1.2 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm transition-all cursor-pointer h-[30px]"
+              >
+                <option value={-1}>Semua Bulan (Jan - Des)</option>
+                <option value={0}>Januari</option>
+                <option value={1}>Februari</option>
+                <option value={2}>Maret</option>
+                <option value={3}>April</option>
+                <option value={4}>Mei</option>
+                <option value={5}>Juni</option>
+                <option value={6}>Juli</option>
+                <option value={7}>Agustus</option>
+                <option value={8}>September</option>
+                <option value={9}>Oktober</option>
+                <option value={10}>November</option>
+                <option value={11}>Desember</option>
+              </select>
+            )}
+            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center gap-0.5 select-none">
+              <FilterButton current={filter} filter="today" onClick={setFilter} label="Hari Ini" />
+              <FilterButton current={filter} filter="week" onClick={setFilter} label="Minggu Ini" />
+              <FilterButton current={filter} filter="month" onClick={setFilter} label="Bulan Ini" />
+              <FilterButton current={filter} filter="year" onClick={setFilter} label="Tahun Ini" />
+              <FilterButton current={filter} filter="all" onClick={setFilter} label="Semua" />
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Jatah Bayar Komisi - Cards Row Sejajar */}
       <div className="space-y-2">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Jatah Bayar Komisi</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Jatah Bayar Komisi</h2>
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 select-none">
+            <span>Total Komisi:</span>
+            <span className="font-extrabold text-indigo-600 dark:text-indigo-400 font-mono text-xs sm:text-sm">
+              {formatIDR(periodTotal)}
+            </span>
+          </div>
+        </div>
         {employeeSummaries.length === 0 ? (
           <div className="bg-white p-8 border border-slate-200 rounded-xl text-center text-slate-500 text-sm shadow-sm">
-            Semua komisi karyawan telah dilunasi!
+            Semua komisi mitra telah dilunasi!
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

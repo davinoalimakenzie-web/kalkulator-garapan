@@ -61,7 +61,7 @@ export function Login() {
             <Calculator className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-extrabold tracking-tight">Kalkulator Garapan</h1>
-          <p className="text-indigo-100/80 text-xs mt-1">Sistem Pencatatan Finansial & Gaji Karyawan</p>
+          <p className="text-indigo-100/80 text-xs mt-1">Sistem Pencatatan Finansial & Gaji Mitra</p>
         </div>
 
         <div className="px-6 py-6 flex-1 flex flex-col justify-center">
@@ -76,7 +76,7 @@ export function Login() {
                 className="space-y-4"
               >
                 <div className="text-center">
-                  <h2 className="text-lg font-bold text-slate-800">Pilih Akun Karyawan</h2>
+                  <h2 className="text-lg font-bold text-slate-800">Pilih Akun Mitra</h2>
                   <p className="text-slate-500 text-xs mt-1">Silakan pilih nama Anda untuk melanjutkan</p>
                 </div>
 
@@ -90,7 +90,7 @@ export function Login() {
                         onClick={() => handleSelectUser(u)}
                         className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-slate-50 transition-all group"
                       >
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <div className="w-10 h-10 rounded-full bg-indigo-5/60 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                           {getInitials(u.name)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ export function Login() {
                               ? "bg-amber-100 text-amber-700" 
                               : "bg-blue-100 text-blue-700"
                           }`}>
-                            {u.role}
+                            {u.role === "karyawan" ? "mitra" : u.role}
                           </span>
                         </div>
                       </button>
@@ -132,7 +132,9 @@ export function Login() {
                     {getInitials(selectedUser.name)}
                   </div>
                   <h2 className="text-lg font-bold text-slate-800">{selectedUser.name}</h2>
-                  <p className="text-slate-500 text-xs capitalize">{selectedUser.role}</p>
+                  <p className="text-slate-500 text-xs capitalize">
+                    {selectedUser.role === "karyawan" ? "mitra" : selectedUser.role}
+                  </p>
                 </div>
 
                 {error && (

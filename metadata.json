@@ -1,6 +1,6 @@
 {
   "name": "Kalkulator Garapan",
-  "description": "Aplikasi manajemen layanan, input garapan, dan kalkulator gaji karyawan dengan fitur rekap otomatis. Dilengkapi fitur saldo pusat dan pelunasan.",
+  "description": "Aplikasi manajemen layanan, input garapan, dan kalkulator gaji mitra dengan fitur rekap otomatis. Dilengkapi fitur saldo pusat dan pelunasan.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

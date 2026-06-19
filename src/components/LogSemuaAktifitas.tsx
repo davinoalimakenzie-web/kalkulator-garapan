@@ -9,14 +9,16 @@ export function LogSemuaAktifitas() {
   // Build unified activities logs list
   const allActivities = useMemo(() => {
     const jobLogs = jobs.map((job) => {
-      const sName = services.find((s) => s.id === job.serviceId)?.name || "Garapan";
+      const svc = services.find((s) => s.id === job.serviceId);
+      const sName = svc?.name || "Garapan";
+      const isSet = !!svc?.isSetEnabled;
       return {
         id: job.id,
         type: "job",
         date: job.date,
         title: "Catat Garapan",
-        description: `${job.quantity}x ${sName}`,
-        details: `${job.quantity} pcs`,
+        description: `${job.quantity}${isSet ? " Set" : "x"} ${sName}`,
+        details: `${job.quantity} ${isSet ? "Set" : "pcs"}`,
         amount: job.deliveryFee || 0,
         amountType: "plus",
         employeeId: job.employeeId || job.employeeName,

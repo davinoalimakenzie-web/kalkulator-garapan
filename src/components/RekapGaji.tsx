@@ -480,16 +480,16 @@ export function RekapGaji() {
       {/* Payment Action Popup (Cicil / Bayar Full) */}
       {isPayActionModalOpen && selectedEmployeeId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100">
+          <div className="bg-white dark:bg-slate-850 rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-700/80 overflow-hidden transform transition-all scale-100">
             {/* Header */}
-            <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-indigo-50 dark:bg-slate-900/40 border-b border-indigo-100 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Pelunasan Komisi</h3>
-                <p className="text-xs text-slate-500">Pilih metode pembayaran komisi</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Pelunasan Komisi</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Pilih metode pembayaran komisi</p>
               </div>
               <button 
                 onClick={() => setIsPayActionModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -514,16 +514,16 @@ export function RekapGaji() {
               )}
 
               {/* Employee info */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-3">
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center gap-3">
                 <UserCircle className="w-12 h-12 text-indigo-500 shrink-0" />
                 <div>
-                  <p className="font-bold text-slate-800 text-base">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 text-base">
                     {users.find(u => u.id === selectedEmployeeId)?.name || employeeSummaries.find(e => e.employeeId === selectedEmployeeId)?.name || 'Karyawan'}
                   </p>
-                  <div className="flex gap-4 mt-0.5 text-xs text-slate-500">
+                  <div className="flex gap-4 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     <div>
                       <span>Sisa Jatah:</span>{" "}
-                      <span className="font-bold text-indigo-600 font-mono">
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 font-mono">
                         {formatIDR(allTimeEmployeeBalances[selectedEmployeeId] || 0)}
                       </span>
                     </div>
@@ -532,13 +532,13 @@ export function RekapGaji() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Bukti Transfer / Catatan TF</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Bukti Transfer / Catatan TF</label>
                 <input
                   type="text"
                   placeholder="Contoh: TF Sukses BCA Ref 91823"
                   value={proofInput}
                   onChange={e => setProofInput(e.target.value)}
-                  className="w-full bg-slate-55 border border-slate-205 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
@@ -755,8 +755,8 @@ export function RekapGaji() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-transparent pb-0 pt-1">
           <div className="min-w-0">
-            <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 leading-none">Pelunasan Komisi Mitra</h2>
-            <p className="text-[10px] sm:text-xs text-slate-500 leading-none mt-1">Kelola dan selesaikan kewajiban pembayaran komisi mitra</p>
+            <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 dark:text-slate-100 leading-none">Pelunasan Komisi Mitra</h2>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-none mt-1">Kelola dan selesaikan kewajiban pembayaran komisi mitra</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
             {filter === "year" && (
@@ -780,7 +780,7 @@ export function RekapGaji() {
                 <option value={11}>Desember</option>
               </select>
             )}
-            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center gap-0.5 select-none">
+            <div className="bg-slate-100 dark:bg-slate-900/60 p-0.5 rounded-lg flex items-center gap-0.5 select-none border border-slate-200/40 dark:border-slate-850/60 shadow-inner">
               <FilterButton current={filter} filter="today" onClick={setFilter} label="Hari Ini" />
               <FilterButton current={filter} filter="week" onClick={setFilter} label="Minggu Ini" />
               <FilterButton current={filter} filter="month" onClick={setFilter} label="Bulan Ini" />
@@ -974,8 +974,8 @@ function FilterButton({ current, filter, onClick, label }: { current: FilterType
       onClick={() => onClick(filter)}
       className={`px-3 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all cursor-pointer ${
         active
-          ? "bg-white text-indigo-700 shadow-sm"
-          : "text-slate-500 hover:text-slate-800"
+          ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-400 shadow-sm"
+          : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
       }`}
     >
       {label}

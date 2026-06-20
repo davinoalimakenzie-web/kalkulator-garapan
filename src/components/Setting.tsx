@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { formatIDR, formatRupiahInput, parseRupiahValue } from "../lib/utils";
 import { useAppContext } from "../context/AppContext";
 import { CopyPlus, Edit2, Plus, Trash2, X, Users, UserCog, UserPlus, Sun, Moon, ChevronDown, ChevronUp } from "lucide-react";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc, collection, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export function Setting() {
@@ -33,6 +33,44 @@ export function Setting() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains("dark");
   });
+
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResettingData, setIsResettingData] = useState(false);
+
+  const handleResetData = async () => {
+    if (currentUser?.role !== "owner" && currentUser?.role !== "admin") {
+      return;
+    }
+    setIsResettingData(true);
+    try {
+      const collectionsToClear = ["jobs", "partner_tasks", "salary_transactions", "payment_requests"];
+      for (const colName of collectionsToClear) {
+        const colRef = collection(db, colName);
+        const snapshot = await getDocs(colRef);
+        let batch = writeBatch(db);
+        let count = 0;
+        for (const docSnap of snapshot.docs) {
+          batch.delete(docSnap.ref);
+          count++;
+          if (count === 500) {
+            await batch.commit();
+            batch = writeBatch(db);
+            count = 0;
+          }
+        }
+        if (count > 0) {
+          await batch.commit();
+        }
+      }
+      await updateDoc(doc(db, "central_balance", "main"), { balance: 0 });
+      setShowResetConfirm(false);
+    } catch (err) {
+      console.error("Error resetting data:", err);
+    } finally {
+      setIsResettingData(false);
+    }
+  };
 
   const toggleTheme = (dark: boolean) => {
     if (dark) {
@@ -127,17 +165,19 @@ export function Setting() {
     setIsAddingUser(false);
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (userId === currentUser?.id) {
       return;
     }
     const targetUser = users.find(u => u.id === userId);
     if (currentUser?.role === "admin" && targetUser?.role === "owner") {
-      alert("Admin tidak diperbolehkan menghapus akun Owner!");
       return;
     }
-    if (window.confirm(`Apakah Anda yakin ingin menghapus akun ${userName}?`)) {
+    if (confirmDeleteUserId === userId) {
       await deleteDoc(doc(db, "users", userId));
+      setConfirmDeleteUserId(null);
+    } else {
+      setConfirmDeleteUserId(userId);
     }
   };
 
@@ -564,11 +604,19 @@ export function Setting() {
                                </select>
                                {user.id !== currentUser?.id && (
                                  <button
-                                   onClick={() => handleDeleteUser(user.id, user.name)}
-                                   className="p-1 text-red-655 hover:bg-red-50 dark:hover:bg-red-950/40 rounded cursor-pointer"
-                                   title="Hapus"
+                                   onClick={() => handleDeleteUser(user.id)}
+                                   className={`p-1 pl-1.5 pr-2 flex items-center gap-1 rounded transition-colors cursor-pointer text-xs font-bold leading-none select-none ${
+                                     confirmDeleteUserId === user.id
+                                       ? "bg-red-600 hover:bg-red-700 text-white shadow animate-pulse scale-105"
+                                       : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                   }`}
+                                   title={confirmDeleteUserId === user.id ? "Klik lagi untuk menghapus" : "Hapus"}
                                  >
-                                   <Trash2 className="w-3.5 h-3.5" />
+                                   {confirmDeleteUserId === user.id ? (
+                                     <span className="text-[9px] uppercase tracking-wider font-extrabold">Yakin?</span>
+                                   ) : (
+                                     <Trash2 className="w-3.5 h-3.5" />
+                                   )}
                                  </button>
                                )}
                              </div>
@@ -671,11 +719,19 @@ export function Setting() {
 
                             {user.id !== currentUser?.id && (
                               <button
-                                onClick={() => handleDeleteUser(user.id, user.name)}
-                                className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded cursor-pointer"
-                                title="Hapus"
+                                onClick={() => handleDeleteUser(user.id)}
+                                className={`p-1 pl-1.5 pr-2 flex items-center gap-1 rounded transition-colors cursor-pointer text-xs font-bold leading-none select-none ${
+                                  confirmDeleteUserId === user.id
+                                    ? "bg-red-650 bg-red-600 hover:bg-red-700 text-white shadow animate-pulse scale-105"
+                                    : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                }`}
+                                title={confirmDeleteUserId === user.id ? "Klik lagi untuk menghapus" : "Hapus"}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                {confirmDeleteUserId === user.id ? (
+                                  <span className="text-[9px] uppercase tracking-wider font-extrabold">Yakin?</span>
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
                               </button>
                             )}
                           </div>
@@ -688,6 +744,57 @@ export function Setting() {
           </div>
         )}
       </section>
+
+      {/* ------------------- ALAT PEMBERSIH DATA SYSTEM (OWNER / ADMIN ONLY) ------------------- */}
+      {(currentUser?.role === "owner" || currentUser?.role === "admin") && (
+        <section className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-205 dark:border-slate-700/80 shadow-sm space-y-2.5 animate-fade-in-up mt-2">
+          <div>
+            <h2 className="text-xs sm:text-sm font-extrabold text-red-600 dark:text-red-400 flex items-center gap-1.5 leading-none">
+              <Trash2 className="w-4 h-4 text-red-500 shrink-0" />
+              Alat Pembersih Data System
+            </h2>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+              Gunakan panel ini untuk membersihkan semua data pengujian / log riwayat garapan mitra sebelum rilis debug build.
+            </p>
+          </div>
+          
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 p-2.5 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="text-[10px] font-bold text-red-750 dark:text-red-350 space-y-1">
+                <p>✔ Logs & Aktivitas garapan akan dibersihkan</p>
+                <p>✔ Riwayat tugas selesai & laporan garapan akan dihapus</p>
+                <p>✔ Isian jatah bayar komisi & saldo pusat akan di-reset (Rp 0)</p>
+              </div>
+              <div className="shrink-0">
+                {!showResetConfirm ? (
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    className="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white font-bold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    Mulai Bersihkan Data
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleResetData}
+                      disabled={isResettingData}
+                      className="bg-red-700 hover:bg-red-800 text-white font-extrabold text-[10px] sm:text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer whitespace-nowrap animate-pulse"
+                    >
+                      {isResettingData ? "Sabar..." : "Ya, Hapus Semua!"}
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirm(false)}
+                      className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-[10px] sm:text-xs px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

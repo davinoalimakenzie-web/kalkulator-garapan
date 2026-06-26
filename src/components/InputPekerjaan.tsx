@@ -22,23 +22,7 @@ export function InputPekerjaan() {
 
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [showNumpad, setShowNumpad] = useState(false);
   const [isConfirmingSave, setIsConfirmingSave] = useState(false);
-
-  const handleNumpadPress = (val: string) => {
-    if (val === "C") {
-      setForm(prev => ({ ...prev, quantity: "" }));
-    } else if (val === "backspace") {
-      setForm(prev => ({ ...prev, quantity: prev.quantity.slice(0, -1) }));
-    } else {
-      setForm(prev => {
-        if (prev.quantity === "0" || prev.quantity === "") {
-          return { ...prev, quantity: val };
-        }
-        return { ...prev, quantity: prev.quantity + val };
-      });
-    }
-  };
 
   const showFormError = (msg: string) => {
     setFormError(msg);
@@ -165,12 +149,6 @@ export function InputPekerjaan() {
           )}
           {/* Form input - structured in exactly 2 rows of 3 columns each as requested, always horizontal */}
           <div className="space-y-3 relative">
-            {showNumpad && (
-              <div 
-                className="fixed inset-0 z-[80]" 
-                onClick={() => setShowNumpad(false)} 
-              />
-            )}
             
             {/* Baris 1: Pilih Mitra, Jenis Garapan, Jumlah Garapan */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 relative z-[85]">
@@ -217,7 +195,7 @@ export function InputPekerjaan() {
                 </label>
                 <div className="relative flex items-center">
                   <input
-                    type="text"
+                    type="number"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={form.quantity || ""}
@@ -226,108 +204,11 @@ export function InputPekerjaan() {
                       const val = e.target.value.replace(/\D/g, "");
                       setForm({ ...form, quantity: val });
                     }}
-                    onFocus={() => {
-                      if (form.serviceId) setShowNumpad(true);
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (form.serviceId) setShowNumpad(true);
-                    }}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-1.5 pr-7 sm:pl-2.5 py-1.5 text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-slate-100 font-bold font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-2.5 pr-3 py-1.5 text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-slate-100 font-bold font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="0"
                   />
-                  <button
-                    type="button"
-                    disabled={!form.serviceId}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (form.serviceId) setShowNumpad(!showNumpad);
-                    }}
-                    className="absolute right-1 text-slate-400 hover:text-indigo-500 p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Keyboard className="w-3.5 h-3.5" />
-                  </button>
                 </div>
 
-                {showNumpad && (
-                  <div className="absolute top-full right-0 mt-1 w-44 sm:w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/85 p-1.5 sm:p-2 rounded-xl shadow-xl z-[90] space-y-1.5">
-                    <div className="flex items-center justify-between border-b border-slate-150 dark:border-slate-700/60 pb-1 text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                      <span>Numpad</span>
-                      <button 
-                        type="button" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowNumpad(false);
-                        }}
-                        className="text-slate-400 hover:text-red-500 p-0.5 rounded cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
-                      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleNumpadPress(num);
-                          }}
-                          className="bg-slate-50 hover:bg-indigo-50 dark:bg-slate-900/60 dark:hover:bg-indigo-950/40 text-slate-800 dark:text-slate-200 aspect-square rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 cursor-pointer active:scale-95 transition-all"
-                        >
-                          {num}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleNumpadPress("C");
-                        }}
-                        className="bg-red-50 hover:bg-red-100 dark:bg-red-95/20 dark:hover:bg-red-900/35 text-red-600 dark:text-red-400 rounded-lg text-[9px] sm:text-xs font-bold flex items-center justify-center border border-red-100/50 dark:border-red-950/50 cursor-pointer active:scale-95 transition-all"
-                      >
-                        C
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleNumpadPress("0");
-                        }}
-                        className="bg-slate-50 hover:bg-indigo-50 dark:bg-slate-900/60 dark:hover:bg-indigo-950/40 text-slate-800 dark:text-slate-200 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 cursor-pointer active:scale-95 transition-all"
-                      >
-                        0
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleNumpadPress("backspace");
-                        }}
-                        className="bg-amber-50 hover:bg-amber-100 dark:bg-amber-955/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-bold text-xs flex items-center justify-center border border-amber-100 dark:border-amber-900/30 cursor-pointer active:scale-95 transition-all"
-                      >
-                        ⌫
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowNumpad(false);
-                      }}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded-lg text-[9px] sm:text-xs transition-colors cursor-pointer text-center"
-                    >
-                      OK
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 

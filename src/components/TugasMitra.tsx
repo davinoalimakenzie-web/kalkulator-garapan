@@ -15,7 +15,6 @@ export function TugasMitra() {
   const [taskItems, setTaskItems] = useState([{ id: Date.now().toString(), serviceId: "", quantity: "", note: "", deliveryFee: "0" }]);
 
   const [formError, setFormError] = useState<string | null>(null);
-  const [showNumpadForId, setShowNumpadForId] = useState<string | null>(null);
 
   // States for Multi-completion Modal for Karyawan
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
@@ -57,19 +56,7 @@ export function TugasMitra() {
   };
 
   const handleItemChange = (id: string, field: string, value: string) => {
-    setTaskItems(taskItems.map(item => item.id === id ? { ...item, [field]: value } : item));
-  };
-
-  const handleNumpadPress = (id: string, num: string) => {
-    const item = taskItems.find(i => i.id === id);
-    if (!item) return;
-    handleItemChange(id, 'quantity', item.quantity + num);
-  };
-
-  const handleNumpadBackspace = (id: string) => {
-    const item = taskItems.find(i => i.id === id);
-    if (!item) return;
-    handleItemChange(id, 'quantity', item.quantity.slice(0, -1));
+    setTaskItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,11 +144,6 @@ export function TugasMitra() {
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Numpad Backdrop Overlay */}
-      {showNumpadForId && (
-        <div className="fixed inset-0 z-[80]" onClick={() => setShowNumpadForId(null)} />
-      )}
-
       {/* COMPLETED/BATCH MODAL FOR KARAYAWAN */}
       {isCompletionModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in" onClick={() => setIsCompletionModalOpen(false)}>
@@ -226,31 +208,31 @@ export function TugasMitra() {
       {/* STICKY TOP CONTAINER */}
       <div className="sticky top-[64px] z-20 bg-slate-50 dark:bg-slate-900 pt-1.5 sm:pt-3 pb-3 -mx-2.5 sm:-mx-6 lg:-mx-8 px-2.5 sm:px-6 lg:px-8 space-y-4">
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/80">
-          <div>
+        <div className="flex flex-row items-center justify-between gap-2 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/80">
+          <div className="flex-1 min-w-0">
             <h2 className="text-sm sm:text-base md:text-lg font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-indigo-500" />
-              Tugas Garapan
+              <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 shrink-0" />
+              <span className="truncate">Tugas Garapan</span>
             </h2>
-            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {currentUser?.role === 'karyawan' ? "Centang tugas-tugas di bawah ini jika sudah selesai Anda kerjakan." : "Admin/Owner memberikan tugas garapan yang bisa diselesaikan mandiri oleh mitra."}
+            <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug pr-1">
+              {currentUser?.role === 'karyawan' ? "Centang tugas di bawah ini jika sudah selesai Anda kerjakan." : "Admin/Owner memberikan tugas garapan yang diselesaikan mitra."}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {pendingTasks.length > 0 && currentUser?.role === 'karyawan' && (
                <button
                  onClick={openCompletionModal}
-                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm whitespace-nowrap"
                >
-                 <ListChecks className="w-4 h-4" /> Proses Garapan Selesai
+                 <ListChecks className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Proses Garapan Selesai</span><span className="sm:hidden">Proses</span>
                </button>
             )}
             {(currentUser?.role === "owner" || currentUser?.role === "admin") && (
               <button
                 onClick={() => setIsFormOpen(!isFormOpen)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs md:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" /> Tambah Tugas
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden xs:inline">Tambah Tugas</span><span className="xs:hidden">Tambah</span>
               </button>
             )}
           </div>
@@ -322,70 +304,16 @@ export function TugasMitra() {
                     <div className="col-span-12 sm:col-span-3 relative">
                       <div className="relative flex items-center">
                         <input
-                          type="text"
+                          type="number"
                           inputMode="numeric"
+                          pattern="[0-9]*"
                           value={item.quantity}
                           disabled={!item.serviceId}
                           onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value.replace(/\D/g, ""))}
-                          onFocus={() => { if(item.serviceId) setShowNumpadForId(item.id); }}
-                          onClick={(e) => { e.stopPropagation(); if(item.serviceId) setShowNumpadForId(item.id); }}
-                          className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg pl-2 pr-7 py-1.5 text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 font-mono font-bold disabled:opacity-50"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 font-mono font-bold disabled:opacity-50"
                           placeholder="Qty"
                         />
-                        <button
-                          type="button"
-                          disabled={!item.serviceId}
-                          onClick={(e) => {
-                            e.preventDefault(); e.stopPropagation();
-                            if(item.serviceId) setShowNumpadForId(item.id === showNumpadForId ? null : item.id);
-                          }}
-                          className="absolute right-1 text-slate-400 hover:text-indigo-505 p-0.5 rounded transition-colors disabled:opacity-50"
-                        >
-                          <Keyboard className="w-3.5 h-3.5" />
-                        </button>
                       </div>
-
-                      {showNumpadForId === item.id && (
-                        <div className="absolute top-full right-0 mt-1 w-48 sm:w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 rounded-xl shadow-xl z-[90]">
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-1 mb-1 text-[9px] text-slate-400 font-bold uppercase">
-                            <span>Numpad</span>
-                            <button type="button" onClick={() => setShowNumpadForId(null)} className="hover:text-slate-600 dark:hover:text-slate-300"><X className="w-3 h-3"/></button>
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                              <button
-                                key={num}
-                                type="button"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNumpadPress(item.id, num.toString()); }}
-                                className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-950 border border-slate-200 dark:border-slate-700 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-707 dark:text-slate-200 transition-colors shadow-sm"
-                              >
-                                {num}
-                              </button>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleItemChange(item.id, 'quantity', ''); }}
-                              className="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 py-1.5 sm:py-2 rounded-lg text-[10px] font-bold transition-colors uppercase tracking-wider"
-                            >
-                              Clear
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNumpadPress(item.id, '0'); }}
-                              className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-950 border border-slate-200 dark:border-slate-700 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-707 dark:text-slate-200 transition-colors shadow-sm"
-                            >
-                              0
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNumpadBackspace(item.id); }}
-                              className="bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 py-1.5 sm:py-2 rounded-lg font-bold transition-colors flex items-center justify-center shadow-sm"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" /></svg>
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="col-span-12 sm:col-span-4">

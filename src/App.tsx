@@ -25,6 +25,8 @@ function Dashboard() {
     }
   }, []);
 
+  const [currentAppMode, setCurrentAppMode] = useState<"ronce" | "service">("ronce");
+  
   // Prevent unauthorized access to setting/log view
   useEffect(() => {
     if (currentUser && currentUser.role !== "owner" && currentUser.role !== "admin" && activeView === "setting") {
@@ -33,7 +35,10 @@ function Dashboard() {
     if (currentUser && currentUser.role !== "owner" && activeView === "log") {
       setActiveView("input");
     }
-  }, [currentUser, activeView]);
+    if (currentUser && currentUser.role !== "owner" && currentAppMode === "service") {
+      setCurrentAppMode("ronce");
+    }
+  }, [currentUser, activeView, currentAppMode]);
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">Loading...</div>;
@@ -48,36 +53,66 @@ function Dashboard() {
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700/80 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-2 rounded-lg text-white">
+            <div 
+              className={`flex items-center gap-3 ${currentUser.role === 'owner' ? 'cursor-pointer group' : ''}`}
+              onClick={() => {
+                if (currentUser.role === 'owner') {
+                  setCurrentAppMode(prev => prev === "ronce" ? "service" : "ronce");
+                }
+              }}
+              title={currentUser.role === 'owner' ? `Pindah ke Kalkulator ${currentAppMode === "ronce" ? "Service" : "Ronce"}` : undefined}
+            >
+              <div className="bg-indigo-600 p-2 rounded-lg text-white group-hover:bg-indigo-700 transition-colors">
                 <Calculator className="w-5 h-5" />
               </div>
-              <h1 className="font-bold tracking-tight text-lg sm:text-xl text-slate-800 dark:text-slate-100">
-                Kalkulator<span className="text-indigo-600 dark:text-indigo-400"> Garapan</span>
-              </h1>
+              <div className="flex flex-col">
+                <h1 className="font-bold tracking-tight text-lg sm:text-xl text-slate-800 dark:text-slate-100 leading-none">
+                  Kalkulator<span className="text-indigo-600 dark:text-indigo-400"> {currentAppMode === "ronce" ? "Ronce" : "Service"}</span>
+                </h1>
+                {currentAppMode === "ronce" && (
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 uppercase tracking-wider font-semibold">Sistem Pencatatan Mitra</span>
+                )}
+              </div>
             </div>
             
-            <nav className="hidden md:flex space-x-1 sm:space-x-2">
-              <NavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-4 h-4" />}>
-                Input
-              </NavButton>
-              <NavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-4 h-4" />}>
-                Tugas
-              </NavButton>
-              <NavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-4 h-4" />}>
-                Rekap
-              </NavButton>
-              {(currentUser.role === 'owner') && (
-                <NavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-4 h-4" />}>
+            {currentAppMode === "ronce" ? (
+              <nav className="hidden md:flex space-x-1 sm:space-x-2">
+                <NavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-4 h-4" />}>
+                  Input
+                </NavButton>
+                <NavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-4 h-4" />}>
+                  Tugas
+                </NavButton>
+                <NavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-4 h-4" />}>
+                  Rekap
+                </NavButton>
+                <NavButton view="log" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-4 h-4" />}>
                   Log
                 </NavButton>
-              )}
-              {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
-                <NavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-4 h-4" />}>
-                  Setting
+                {(currentUser.role === 'owner') && (
+                  <NavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-4 h-4" />}>
+                    Setting
+                  </NavButton>
+                )}
+              </nav>
+            ) : (
+              <nav className="hidden md:flex space-x-1 sm:space-x-2">
+                <NavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-4 h-4" />}>
+                  Estimasi
                 </NavButton>
-              )}
-            </nav>
+                <NavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-4 h-4" />}>
+                  Tugas
+                </NavButton>
+                <NavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-4 h-4" />}>
+                  Rekap
+                </NavButton>
+                {(currentUser.role === 'owner') && (
+                  <NavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-4 h-4" />}>
+                    Setting
+                  </NavButton>
+                )}
+              </nav>
+            )}
 
             <div className="flex items-center gap-4">
               <div className="text-sm text-right hidden lg:block">
@@ -98,25 +133,49 @@ function Dashboard() {
       </header>
 
       <main className={`max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pb-4 sm:pb-8 mb-24 md:mb-8 ${activeView === "rekap" ? "pt-0" : "pt-1.5 sm:pt-3"}`}>
-        {(activeView === "setting" && (currentUser.role === "owner" || currentUser.role === "admin")) && <Setting />}
-        {activeView === "input" && <InputPekerjaan />}
-        {activeView === "tugas" && <TugasMitra />}
-        {activeView === "rekap" && <RekapGaji />}
-        {activeView === "log" && <LogSemuaAktifitas />}
+        {currentAppMode === "ronce" ? (
+          <>
+            {(activeView === "setting" && currentUser.role === "owner") && <Setting />}
+            {activeView === "input" && <InputPekerjaan />}
+            {activeView === "tugas" && <TugasMitra />}
+            {activeView === "rekap" && <RekapGaji />}
+            {activeView === "log" && <LogSemuaAktifitas />}
+          </>
+        ) : (
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/80 text-center mt-4">
+            <Calculator className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+              {activeView === "input" ? "Estimasi Service" : 
+               activeView === "tugas" ? "Tugas Service" : 
+               activeView === "rekap" ? "Rekap Service" : 
+               "Setting Service"}
+            </h2>
+            <p className="text-sm text-slate-500 mt-2">Area ini sedang dalam tahap pengembangan.</p>
+          </div>
+        )}
       </main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700/80 z-40 pb-safe">
-        <div className="flex justify-around items-center h-16 px-2">
-          <MobileNavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-5 h-5" />} label="Input" />
-          <MobileNavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-5 h-5" />} label="Tugas" />
-          <MobileNavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-5 h-5" />} label="Rekap" />
-          {(currentUser.role === 'owner') && (
-            <MobileNavButton view="log" active={activeView} onClick={setActiveView} icon={<History className="w-5 h-5" />} label="Log" />
-          )}
-          {(currentUser.role === 'owner' || currentUser.role === 'admin') && (
-            <MobileNavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-5 h-5" />} label="Setting" />
-          )}
-        </div>
+        {currentAppMode === "ronce" ? (
+          <div className="flex justify-around items-center h-16 px-2">
+            <MobileNavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-5 h-5" />} label="Input" />
+            <MobileNavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-5 h-5" />} label="Tugas" />
+            <MobileNavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-5 h-5" />} label="Rekap" />
+            <MobileNavButton view="log" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-5 h-5" />} label="Log" />
+            {(currentUser.role === 'owner') && (
+              <MobileNavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-5 h-5" />} label="Setting" />
+            )}
+          </div>
+        ) : (
+          <div className="flex justify-around items-center h-16 px-2">
+            <MobileNavButton view="input" active={activeView} onClick={setActiveView} icon={<ClipboardEdit className="w-5 h-5" />} label="Estimasi" />
+            <MobileNavButton view="tugas" active={activeView} onClick={setActiveView} icon={<ClipboardList className="w-5 h-5" />} label="Tugas" />
+            <MobileNavButton view="rekap" active={activeView} onClick={setActiveView} icon={<WalletCards className="w-5 h-5" />} label="Rekap" />
+            {(currentUser.role === 'owner') && (
+              <MobileNavButton view="setting" active={activeView} onClick={setActiveView} icon={<LayoutDashboard className="w-5 h-5" />} label="Setting" />
+            )}
+          </div>
+        )}
       </nav>
     </div>
   );

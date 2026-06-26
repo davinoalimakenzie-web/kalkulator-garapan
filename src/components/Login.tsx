@@ -122,7 +122,7 @@ export function Login() {
           <div className="bg-white/10 p-2.5 rounded-xl mb-3 flex items-center justify-center">
             <Calculator className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-extrabold tracking-tight">Kalkulator Garapan</h1>
+          <h1 className="text-xl font-extrabold tracking-tight">Kalkulator Ronce</h1>
           <p className="text-indigo-100/80 text-xs mt-1">Sistem Pencatatan Finansial & Gaji Mitra</p>
         </div>
 
@@ -317,7 +317,7 @@ export function Login() {
         </div>
 
         <div className="py-4 border-t border-slate-100 text-center bg-slate-50/50">
-          <p className="text-[10px] text-slate-400 font-medium">© 2026 Kalkulator Garapan • PIN Auth Protocol</p>
+          <p className="text-[10px] text-slate-400 font-medium">© 2026 Kalkulator Ronce • PIN Auth Protocol</p>
         </div>
       </div>
     </div>
